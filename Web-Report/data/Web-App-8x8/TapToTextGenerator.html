@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Text Generator</title>
+<link href="WebApp8x8.css" rel="stylesheet" type="text/css">
+<!--<script src="mqttws31.js">-->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+</script>
+</head>
+
+<nav>
+<body>
+<table  style="width: 100%;">
+	<tr>
+		<td class="auto-style6" style="width: 28%; height: 44px;">
+		<a href="http://www.hs-karlsruhe.de/" target="_blank">
+		<img alt="" class="auto-style19" height="89" src="Images/HsKA Logo.png" style="float: left" width="257"></a></td>	
+		<td class="auto-style6" style="width: 28%; height: 44px;">
+		<h1 style="text-align:center; font-size: 40px">8x8 WebApp</h1></td>
+		<td class="auto-style6" style="width: 28%; height: 44px;"></td>
+	</tr>
+</table>
+	
+	<div align="center">
+		<table style="align-content: center;width:auto ">
+			<tr style="width: auto">
+				<td>
+				<image class="auto-style19" height="50" src="Images/Icon_TextGeneration.png" width="50"></image>
+				</td>
+				<td>
+			<span style="font-size: 30px">Text Generation</span>
+				</td>
+			</tr>
+		</table>
+	</div>	
+	<br/>
+	<div align="center">
+		<table align="center" style="width: 80">
+			<tr>
+				<td>
+					<strong><span class="auto-style24">Text</span></strong>
+				</td>
+				<td>
+					 : 
+				</td>
+				<td>
+					<input type="text" id="txtbox_Text" class="auto-style24" style="width: 200px; height: 30px;">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong><span class="auto-style24">Color (Red)</span></strong>
+				</td>
+				<td>
+					 : 
+				</td>
+				<td>
+					<input type="number" id="txtbox_ColorR" class="auto-style24" style="width: 200px; height: 30px;">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong><span class="auto-style24">Color (Green)</span></strong>
+				</td>
+				<td>
+					 : 
+				</td>
+				<td>
+					<input type="number" id="txtbox_ColorG" class="auto-style24" style="width: 200px; height: 30px;">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong><span class="auto-style24">Color (Blue)</span></strong>
+				</td>
+				<td>
+					 : 
+				</td>
+				<td>
+					<input type="number" id="txtbox_ColorB" class="auto-style24" style="width: 200px; height: 30px;">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong><span class="auto-style24">Brightness</span></strong>
+				</td>
+				<td>
+					 : 
+				</td>
+				<td>
+					<input type="number" id="txtbox_Brightness" class="auto-style24" style="width: 200px; height: 30px;">
+				</td>
+			</tr>
+		</table>
+	</div>
+	<br/>
+	<div align="center">
+		<button style="width: 200px;height: 50px; background-color: gray; border-color: black; font-size: 30px" onClick="startConnect()" >Send</button>
+	</div>
+	<br/>	
+	<div align="center">
+		<button style="width: 200px;height: 50px; background-color: gray; border-color: black; font-size: 30px" onClick="ToTapToHome()" >BACK</button>
+	</div>
+</body>
+</nav>
+<script src="WebApp8x8.js"></script>
+</html>

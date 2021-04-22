@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+
+<!-- #BeginTemplate "00Vorlage.dwt" -->
+
+<html>
+
+<head>
+<meta content="de" http-equiv="Content-Language">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<meta name="description" content="Methodisches Entwickeln von Projekten">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="keywords" content="Informationstechnik, Signale, Systeme, Projekte, Technik, 3D, Mikrocontroller" />
+<script type="text/javascript">
+		var project = window.location.pathname;
+	</script>
+	<noscript>Prof. J. Walter - Informationstechnik, Mikrocomputertechnik, Digitale Medien </noscript>
+
+<!-- #BeginEditable "doctitle" -->
+<title>Requirement List</title>
+<style type="text/css">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.tabelle
+{
+    font-size:8pt;
+}
+.h3
+{
+	color: rgb(00,00,00);
+	font-size:10pt;
+	font-weight:bold
+
+}
+.h1
+{
+	color: rgb(00,50,100);
+	font-size:16pt;
+	font-weight:bold
+}
+.hinweis     { font-size: 12pt; font-style: italic }
+.h2
+{
+	color: rgb(00,50,100);
+	font-size:13pt;
+	font-weight:bold
+
+}
+.auto-style21 {
+	border-width: 0px;
+}
+.auto-style23 {
+	font-size: x-small;
+}
+.auto-style24 {
+	border-style: solid;
+	border-width: 1px;
+}
+.auto-style26 {
+	font-size: x-small;
+	border: 1px solid #FFFFFF;
+	background-color: #E5E5E5;
+}
+.auto-style27 {
+	border: 1px solid #FFFFFF;
+	color: #000000;
+	background-color: #E5E5E5;
+}
+.auto-style28 {
+	font-size: x-small;
+	border: 1px solid #FFFFFF;
+	color: #000000;
+	background-color: #E5E5E5;
+}
+.auto-style30 {
+	border: 1px solid #FFFFFF;
+	font-size: medium;
+	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+	color: #000000;
+	background-color: #E5E5E5;
+}
+.auto-style31 {
+	border: 1px solid #FFFFFF;
+	font-size: x-small;
+	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+	color: #000000;
+	background-color: #E5E5E5;
+}
+.auto-style32 {
+	color: black;
+	font-size: large;
+}
+.auto-style36 {
+	border: 1px solid #FFFFFF;
+	background-color: #E5E5E5;
+}
+.auto-style38 {
+	border: 1px solid #FFFFFF;
+	font-size: x-small;
+	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+	color: #000000;
+	background-color: #E5E5E5;
+	text-align: center;
+}
+</style>
+<!-- #EndEditable -->
+<link href="highlight/styles/default.css" rel="stylesheet">
+<script src="highlight/to/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+<link href="CSS/Design.css" media="screen" rel="stylesheet" type="text/css" />
+<link href="CSS/default.css" media="print" rel="stylesheet" type="text/css" />
+<style type="text/css">
+
+.auto-style19 {
+	border-width: 0px;
+	vertical-align: middle;
+	background-color:white;
+}
+a {
+	color: #000000;
+}
+a:visited {
+	color: #000000;
+}
+a:active {
+	color: #E1003C;
+}
+.auto-style21 {
+	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+	color: #FFFFFF;
+	text-align: center;
+	background-color: #FFFFFF;
+}
+.auto-style22 {
+	text-align: center;
+	color: #000000;
+	font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+}
+.auto-style23 {
+	font-size: x-large;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header" style="z-index: 100">
+	<div class="top" style="height: 150px">
+		<table  style="width: 100%; height: 150px;">
+			<tr>
+				<td class="auto-style21" style="width: 28%; height: 44px;">
+				<a href="http://www.hs-karlsruhe.de/" target="_blank">
+				<img alt="Hochschule Karlsruhe Logo" class="auto-style19" height="92" src="images/Hska_logo.png" style="float: left" width="277"></a></td>
+				<td class="auto-style2" style="height: 100px">
+				<span class="auto-style3"><strong>Microcontroller Technology</strong></span><br class="auto-style3">
+				<span class="auto-style3"><strong>Intelligent Crutch</strong></span></td>
+				<td class="auto-style6" style="width: 30%; height: 44px;">
+				<img alt="eu4m" height="96" src="images/eu4m.png" width="227">
+				
+				</td>
+			</tr>
+			<tr>
+				<td colspan="3" style="height: 50px;" >
+				<ul>
+					<li><a href="index.html">Homepage</a></li>
+					<li><a href="0101team.html">1.0 Team</a></li>
+					<li class="dropdown"><span>
+					<a class="dropbtn" href="0201Vorwort.html" >2.0 Definition Phase</a></span>
+					<div class="dropdown-content">
+						<a href="0201Vorwort.html">2.1 Introduction</a>
+						<a href="0202Problemstellung.html">2.2 Problem Statement</a>
+						<a href="0203StandDerTechnik.html">2.3 State of Technology</a>
+						<a href="0204Aufgabenstellung.html">2.4 Task Description</a>
+						<a href="0205Mindmap.html">2.5 Mindmap</a>
+						<a href="0206ProjektplanIST.html">2.6 Project Plan</a>
+						<a href="0207anforderungsliste.html">2.7 Requirement List</a>
+						
+					</div>
+					<div>
+					</div>
+					</li>
+					<li class="dropdown"><span>
+					<a class="dropbtn" href="0301Blackbox.html">3.0 Concept Phase</a></span>
+					<div class="dropdown-content">
+						<a href="0301Blackbox.html">3.1 Black-Box</a>
+						<a href="0302Funktionsstruktur.html">3.2 Functional Structure</a>
+						<a href="0303Morphologie.html">3.3 Morphology</a>
+						<a href="0304VorteileNachteile.html">3.4 Advantages/Disadvantages</a>
+						<a href="0305Loesungsalternativen.html">3.5 Alternative Solutions</a>
+						<a href="0306Ranking.html">3.6 Ranking</a>
+						<a href="0307VerfahrensmatrixNWA.html">3.7 Benefit Analysis of Procedure</a>
+						<a href="0308ErgebnisNWA.html">3.8 Analysis Result</a>
+						<a href="0309Konzeptentwicklung.html">3.9 Concept Development</a>
+						<a href="0310Bestellliste.html">3.10 Order List</a>
+					</div>
+					<div>
+					</div>
+					</li>
+					<li class="dropdown"><span>
+					<a class="dropbtn" href="0401AusgewaehlteLoesung.html">4.0 Development Phase</a></span>
+					<div class="dropdown-content">
+						<a href="0401AusgewaehlteLoesung.html">4.1 Selected Solution</a>
+						<a href="0402Blockschaltbild.html">4.2 Block Diagram</a>
+						<a href="0403Softwaredoku.html">4.3 Software Documentation</a>
+						<a href="0404Portbelegungsplan.html">4.4 Pins Allocation Plan</a>
+						<a href="0405Schaltplan.html">4.5 Schematic Diagram</a>
+						<a href="0406Layout.html">4.6 Layout</a>
+						<a href="0407Quellcode.html">4.7 Source Code</a>
+						<a href="0408Mechanik.html">4.8 Mechanical</a>
+						<a href="04093D-Druck.html">4.9 3-D-Print</a>
+						<a href="0410Bedienungsanleitung.html">4.10 Operating Manual</a>
+						<a href="0411Weiterentwicklung.html">4.11 Enhancements</a>
+						<a href="0412Linkliste.html">4.12 Link List</a>
+						<a href="0413Fazit.html">4.13 Conclusion</a>
+						<a href="0414Anhang.html">4.14 Appendix</a>
+						<a href="0415Protokolle.html">4.15 Log</a> </div>
+					</li>
+				</ul>
+				</td>
+			</tr>
+		</table>
+	</div>
+</div>
+<div class="auto-style2" style="overflow: hidden; margin: 0 auto; width: 1000px; top: 150px; position: relative; left: 0px;">
+	<table  class="auto-style10" style="width: 100%">
+		<tr>
+			<td class="auto-style15" style="height: 0px">
+			<table  style="width: 970px">
+				<tr>
+					<td style="width: 30px; height: 0px;">
+					<!-- #BeginEditable "NaviVorher" -->
+					<p>					<a href="0206ProjektplanIST.html">					
+					<img alt="" height="32" src="images/back_active.png" width="32" class="auto-style21"></a></p>
+<!-- #EndEditable -->
+					</td>
+					<td class="auto-style2" style="width: 900px; height: 36px;">
+					<!-- #BeginEditable "Ueberschrift_Navi" -->
+					<strong>2.7 Requirement List</strong><!-- #EndEditable --></td>
+					
+					
+					<td style="width: 30px; height: 36px;" class="auto-style2"><!-- #BeginEditable "NaviNachher" -->
+					<p><a href="0301Blackbox.html">
+					<img alt="" height="32" src="images/next_active.png" width="32" class="auto-style21"></a></p>
+<!-- #EndEditable -->
+					</td>
+					
+					
+				</tr>
+			</table>
+			</td>
+		</tr>
+		<tr>
+			<td class="auto-style15" style="height: 600px;"><!-- #BeginEditable "Inhalt" -->
+			<table class="auto-style24" style="width: 100%">
+				<tr>
+					<td class="auto-style36" colspan="4" style="height: 60px"><strong>
+					Hochschule 
+					Karlsruhe Technik und Wirtschaft</strong></td>
+					<td class="auto-style36" style="height: 60px">
+					
+					<h2>Requirement List<br>Project</h2>
+					
+					</td>
+					<td class="auto-style27" colspan="4" style="height: 60px">
+					<strong>Summer Semester 2021</strong></td>
+				</tr>
+				<tr>
+					<td class="auto-style36" colspan="4"><strong>
+					Faculty of Mechanical and Mechatronics</strong></td>
+					<td class="auto-style27">&nbsp;</td>
+					<td class="auto-style27" colspan="4">&nbsp;</td>
+				</tr>
+				<tr>
+					<td class="auto-style27" colspan="4"><strong>Prof. J. Walter</strong></td>
+					<td class="auto-style27">&nbsp;</td>
+					<td class="auto-style36" colspan="4"><strong>
+					Semester:
+					SS 2021</strong></td>
+				</tr>
+				<tr>
+					<td class="auto-style30" colspan="2">
+					Organisation-<br>Details</td>
+					<td class="auto-style36" colspan="2">Process-<br>Details</td>
+					<td class="auto-style27">&nbsp;</td>
+					<td class="auto-style27" colspan="4">Value-Details</td>
+				</tr>
+				<tr>
+					<td class="auto-style31">Num.</td>
+					<td class="auto-style31">Name:</td>
+					<td class="auto-style28">Art</td>
+					<td class="auto-style28">Phase</td>
+					<td class="auto-style36">
+					<h2 >Requirements</h2>
+					</td>
+					<td class="auto-style31" style="width: 62px">Minimum-<br>
+					Fulfillment</td>
+					<td class="auto-style26" style="width: 70px">Should-<br>
+					Fulfillment</td>
+					<td class="auto-style26" style="width: 70px">Ideal-<br>
+					Fulfillment</td>
+					<td class="auto-style28" style="width: 111px">Unit of Measurement</td>
+				</tr>
+				<tr>
+					<td class="auto-style27">&nbsp;</td>
+					<td class="auto-style27">&nbsp;</td>
+					<td class="auto-style27">&nbsp;</td>
+					<td class="auto-style27">&nbsp;</td>
+					<td class="auto-style36">
+					<h3 >Physical-Technical Function</h3>
+					</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">P01</td>
+					<td class="auto-style31">Lorenz</td>
+					<td class="auto-style31">Y/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Measure load on each crutch</td>
+					<td class="auto-style31" style="width: 62px">+/- 10</td>
+					<td class="auto-style31" style="width: 70px">+/- 5</td>
+					<td class="auto-style31" style="width: 70px">+/- 2.5</td>
+					<td class="auto-style31" style="width: 111px">%max partial load</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">P02</td>
+					<td class="auto-style31">Joachim</td>
+					<td class="auto-style31">W</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style38">Measure crutch acceleration</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">P03</td>
+					<td class="auto-style31">Mufti</td>
+					<td class="auto-style31">W</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style38">Acquire crutch orientation</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">P04</td>
+					<td class="auto-style31">Chris</td>
+					<td class="auto-style31">Y/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Recognize 3-point-walking with crutches</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">P05</td>
+					<td class="auto-style31">Kai Li</td>
+					<td class="auto-style31">W</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Recognize walking up- and downstairs with crutches</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">P06</td>
+					<td class="auto-style31">Danial</td>
+					<td class="auto-style31">Y/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Combine data between both crutches wirelessly</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">P07</td>
+					<td class="auto-style31">Mufti</td>
+					<td class="auto-style31">Y/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Calculate load on affected leg while walking</td>
+					<td class="auto-style31" style="width: 62px">+/-20</td>
+					<td class="auto-style31" style="width: 70px">+/-10</td>
+					<td class="auto-style31" style="width: 70px">+/-5</td>
+					<td class="auto-style31" style="width: 111px">kg</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">P08</td>
+					<td class="auto-style31">Joachim</td>
+					<td class="auto-style31">Y/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Support body weight</td>
+					<td class="auto-style31" style="width: 62px">70</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">kg per crutch</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">P09</td>
+					<td class="auto-style31">Lorenz</td>
+					<td class="auto-style31">Y/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Provide continous battery runtime</td>
+					<td class="auto-style31" style="width: 62px">8</td>
+					<td class="auto-style31" style="width: 70px">16</td>
+					<td class="auto-style31" style="width: 70px">24</td>
+					<td class="auto-style31" style="width: 111px">hours</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style36">
+					<h3 class="auto-style32" >Technology (Manufacturability)</h3>
+					</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">T01</td>
+					<td class="auto-style31">Danial</td>
+					<td class="auto-style31">W</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Design to retrofit conventional crutch</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">T02</td>
+					<td class="auto-style31">Chris</td>
+					<td class="auto-style31">Y/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Meet ISO criteria</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">T03</td>
+					<td class="auto-style31">Kai Li</td>
+					<td class="auto-style31">W</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Design for future adaptation on walking frame (Zimmer frame)</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style36">
+					<h3 class="auto-style32" >Economics</h3>
+					</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">E01</td>
+					<td class="auto-style31">Kai Li</td>
+					<td class="auto-style31">F</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Maximale Gesamtkosten</td>
+					<td class="auto-style31" style="width: 62px">400</td>
+					<td class="auto-style31" style="width: 70px">200</td>
+					<td class="auto-style31" style="width: 70px">150</td>
+					<td class="auto-style31" style="width: 111px">Euro</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style36">
+					<p class="auto-style32" ><strong>Human-Product Relationships</strong></p>
+					</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">H01</td>
+					<td class="auto-style31">Danial</td>
+					<td class="auto-style31">J/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Signal patient overload acoustically</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">H02</td>
+					<td class="auto-style31">Mufti</td>
+					<td class="auto-style31">J/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Signal patient overload optically</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">H03</td>
+					<td class="auto-style31">Chris</td>
+					<td class="auto-style31">J/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Show live load on affected limb via 
+					web application</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">H04</td>
+					<td class="auto-style31">Joachim</td>
+					<td class="auto-style31">J/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Imply basic operation for patient without additional devices</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">H05</td>
+					<td class="auto-style31">Lorenz</td>
+					<td class="auto-style31">J/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Imply operation for medical personnel wireless via web application</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">H06</td>
+					<td class="auto-style31">Chris</td>
+					<td class="auto-style31">J/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Set partial load (full load) via web application</td>
+					<td class="auto-style31" style="width: 62px">10-20</td>
+					<td class="auto-style31" style="width: 70px">&gt;0</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">kg</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">H07</td>
+					<td class="auto-style31">Kai Li</td>
+					<td class="auto-style31">J/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Store data anonymously on crutch</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">H08</td>
+					<td class="auto-style31">Danial</td>
+					<td class="auto-style31">J/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Simple recharge of battery</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">USB Charger</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">H09</td>
+					<td class="auto-style31">Danial</td>
+					<td class="auto-style31">W</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Handling for patient as simple as possible</td>
+					<td class="auto-style31" style="width: 62px">only calibration and on/off switches</td>
+					<td class="auto-style31" style="width: 70px">only on/off switch</td>
+					<td class="auto-style31" style="width: 70px">no switch</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">H10</td>
+					<td class="auto-style31">Mufti</td>
+					<td class="auto-style31">W</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Show statistical data on web application: steps total, persentage, how many steps over/under limit, max/min load, average load, average above/below limit load</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">H11</td>
+					<td class="auto-style31">Mufti</td>
+					<td class="auto-style31">W</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Show report in printable format</td>
+					<td class="auto-style31" style="width: 62px">html website</td>
+					<td class="auto-style31" style="width: 70px">PDF</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">H12</td>
+					<td class="auto-style31">Joachim</td>
+					<td class="auto-style31">J/N</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">Determine patient's weight for calculation</td>
+					<td class="auto-style31" style="width: 62px">enter via web interface</td>
+					<td class="auto-style31" style="width: 70px">put whole weight on crutch, optional calibration switch</td>
+					<td class="auto-style31" style="width: 70px">calculate from raw data</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">H13</td>
+					<td class="auto-style31">Lorenz</td>
+					<td class="auto-style31">W</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style38">Seperate display to show live the 
+					load on affected limb without any operation</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">H14</td>
+					<td class="auto-style31">Chris</td>
+					<td class="auto-style31">W</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style38">2nd operating mode that signals 
+					load on affected limb below certain value</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31" style="height: 23px"></td>
+					<td class="auto-style31" style="height: 23px"></td>
+					<td class="auto-style31" style="height: 23px"></td>
+					<td class="auto-style31" style="height: 23px"></td>
+					<td class="auto-style31" style="height: 23px"></td>
+					<td class="auto-style31" style="height: 23px; width: 62px;"></td>
+					<td class="auto-style31" style="height: 23px; width: 70px;"></td>
+					<td class="auto-style31" style="height: 23px; width: 70px;"></td>
+					<td class="auto-style31" style="width: 111px; height: 23px;"></td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31">&nbsp;</td>
+					<td class="auto-style31" style="width: 62px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 70px">&nbsp;</td>
+					<td class="auto-style31" style="width: 111px">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style31" colspan="9">Requirement Type : Y/N 
+					- Necessary, TR - Tolerated Requirement; W - Wish;&nbsp; Construction Phase : P - Principle; 
+					C - Concept; D - Draft; E - Elaboration;
+					<br>Name abbreviation of Editor : onka
+					( Ong Kai Li ), lida ( Danial Haris )</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style27" colspan="4" rowspan="2">First Edition<br>
+					from April 2021</td>
+					<td class="auto-style27">&nbsp;</td>
+					<td class="auto-style27" colspan="4">Edition: 18 April 2021</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style27">&nbsp;</td>
+					<td class="auto-style27" colspan="4">Version: 01</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style27" colspan="4" rowspan="2">Editor:<br>
+					</td>
+					<td class="auto-style27"></td>
+					<td class="auto-style27" colspan="4">&nbsp;</td>
+				</tr>
+				<tr class="auto-style23">
+					<td class="auto-style27"></td>
+					<td class="auto-style27" colspan="4">Sheet 1 of 1</td>
+				</tr>
+			</table>
+			<p > &nbsp;
+			</p>
+			<!-- #EndEditable --></td>
+		</tr>
+	</table>
+	<br></div>
+<div style="height: 5px; overflow: hidden; margin: 0 auto; width: 800px; top: 150px; position: relative; left: 0px;">
+</div>
+<div class="bottom" style="overflow: hidden; margin: 0 auto; width: 100%; top: 150px; position: relative; left: 0px; height: 28px;">
+	<table style="width: 100%" >
+		<tr>
+			<td class="auto-style4" style="height: 25px; width: 395px;">&nbsp;</td>
+			<td class="auto-style22" style="width: 50%; height: 25px;">
+			With Support of Prof. J. Walter</td>
+			<td class="auto-style22" style="width: 50%; height: 25px;">
+			<strong>Summer Semester 2021</strong></td>
+			<td class="auto-style5" style="width: 50%; height: 25px;">&nbsp;</td>
+		</tr>
+	</table>
+	<br></div>
+
+</body>
+
+</html>
