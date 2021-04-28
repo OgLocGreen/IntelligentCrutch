@@ -35,19 +35,25 @@ const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 0;
 const int   daylightOffset_sec = 3600;
 
-int var = 0;
-int timestamp = 0;
- 
-int var_right = 0;
-
+float var = 0;
+float stamp = 0;
+float time_left = 0; 
+float var_right = 0;
+float stamp_right = 0;
+float time_right = 0;
+int i = 0;
 String success;
 
-int incomingReadings;
 
 typedef struct struct_message {
     float weight;
     float stamp;
+    float time;
 } struct_message;
+
+struct_message incomingReadings;
+struct_message sensorOut;
+
 
 void printLocalTime();
 void updateDisplay();
@@ -129,11 +135,24 @@ void setup() {
 }
 
 void loop() {
-  var = random(0, 100);
-  timestamp = random(0,10);
   
+  if (i%2==true)
+  {
+    var = random(0, 100);
+    stamp = random(0,10);
+    time_left = millis();
+  }
+  i++;
+  if (i == 200)
+  {
+    i = 0;
+  }
+
+  sensorOut.weight = var;
+  sensorOut.stamp = stamp;
+  sensorOut.time = time_left;
   // Send message via ESP-NOW
-  esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &var, sizeof(var));
+  esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &sensorOut, sizeof(sensorOut));
    
   if (result == ESP_OK) {
     Serial.println("Sent with success");
@@ -157,12 +176,29 @@ void updateDisplay(){
 
 
   display.setCursor(0,0);
-  display.print("var: ");
+  display.print("var_left: ");
   display.println(var);
 
   display.setCursor(0,10);
-  display.print("timestamp: ");
-  display.println(timestamp);
+  display.print("stamp_left: ");
+  display.println(stamp);
+
+  display.setCursor(0,20);
+  display.print("time: ");
+  display.println(time_left);
+  
+  display.setCursor(0,30);
+  display.print("var_right: ");
+  display.println(var_right);
+
+  display.setCursor(0,40);
+  display.print("stamp_right: ");
+  display.println(stamp_right);
+  
+  display.setCursor(0,50);
+  display.print("time_left: ");
+  display.println(time_right);
+
 
   display.display();
 
@@ -186,5 +222,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
   Serial.print("Bytes received: ");
   Serial.println(len);
-  var_right = incomingReadings;
+  var_right = incomingReadings.weight;
+  stamp_right = incomingReadings.stamp;
+  time_right = incomingReadings.time;
 }

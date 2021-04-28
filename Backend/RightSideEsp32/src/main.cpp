@@ -36,20 +36,25 @@ const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 0;
 const int   daylightOffset_sec = 3600;
 
-int var = 0;
-int stamp = 0;
-int var_left = 0;
-int stamp_left = 0;
+float var = 0;
+float stamp = 0;
+float time_right = 0;
+float var_left = 0;
+float stamp_left = 0;
+float time_left = 0;
 
+int i = 0;
 String success;
 
-struct_message incomingReadings;
 
 typedef struct struct_message {
     float weight;
     float stamp;
+    float time;
 } struct_message;
 
+struct_message incomingReadings;
+struct_message sensorOut;
 
 void printLocalTime();
 void updateDisplay();
@@ -131,11 +136,23 @@ void setup() {
 }
 
 void loop() {
-  var = random(0, 100);
-  stamp = millis();
   
+  if (i%2==true)
+  {
+    var = random(0, 100);
+    stamp = random(0, 100);
+    time_right = millis();
+  }
+  i++;
+  if (i == 200)
+  {
+    i = 0;
+  }
+  sensorOut.weight = var;
+  sensorOut.stamp = stamp;
+  sensorOut.time = time_right;
   // Send message via ESP-NOW
-  esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &var, sizeof(var));
+  esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &sensorOut, sizeof(sensorOut));
    
   if (result == ESP_OK) {
     Serial.println("Sent with success");
@@ -144,7 +161,7 @@ void loop() {
     Serial.println("Error sending the data");
   }
   updateDisplay();
-  delay(2000);
+  delay(1000);
 
 
   //printLocalTime();
@@ -167,12 +184,20 @@ void updateDisplay(){
   display.println(stamp);
 
   display.setCursor(0,20);
-  display.print("var_left: ");
-  display.println(var_left);
+  display.print("time: ");
+  display.println(time_right);
   
   display.setCursor(0,30);
+  display.print("var_left: ");
+  display.println(var_left);
+
+  display.setCursor(0,40);
   display.print("stamp_left: ");
   display.println(stamp_left);
+  
+  display.setCursor(0,50);
+  display.print("time_left: ");
+  display.println(time_left);
 
   display.display();
 
@@ -197,4 +222,5 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   Serial.println(len);
   var_left = incomingReadings.weight;
   stamp_left = incomingReadings.stamp;
+  time_left = incomingReadings.time;
 }
