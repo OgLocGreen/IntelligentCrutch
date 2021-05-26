@@ -14,6 +14,9 @@
 #define FILTER_SIZE 1
 #define LOCATION_CALIBRATION_FACTOR 0
 #define LOCATION_ZERO_OFFSET 10
+#define LOCATION_MAXWEIGHT 20
+#define LED_PIN 2
+#define BEEPER_PIN 16
 
 String input;
 int state = 0;
@@ -23,6 +26,7 @@ long weightFilter[FILTER_SIZE] = { 0.0 };
 int fCount = 0;
 float weightSum = 0.0;
 bool spam = 1;
+float maxweight = 0;
 
 BluetoothSerial btSerial;		           // Bluetooth
 NAU7802 myScale; //Create instance of the NAU7802 class
@@ -37,6 +41,13 @@ void setup()
 
     setupScale();    // Load zeroOffset and calibrationFactor from EEPROM
 
+    pinMode(BEEPER_PIN, OUTPUT);
+    digitalWrite(BEEPER_PIN, HIGH);     // high = beeper off
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN, HIGH);
+    delay(200);
+    digitalWrite(LED_PIN, LOW);
+
     btSerial.begin("iUAGS");
 }
 
@@ -46,8 +57,19 @@ void loop()
     Serial.println(myScale.getReading());
 
     updateAvgWeight();
-    Serial.print("   Filtered Weight: ");
-    Serial.println(weight);
+    //Serial.print("   Filtered Weight: ");
+    //Serial.println(weight);
+
+    if (weight > maxweight)
+    {
+        digitalWrite(LED_PIN, HIGH);
+        digitalWrite(BEEPER_PIN, LOW);
+    }
+    else
+    {
+        digitalWrite(LED_PIN, LOW);
+        digitalWrite(BEEPER_PIN, HIGH);
+    }
 
     if (btSerial.available()) datareceived();
 
@@ -68,7 +90,9 @@ void datareceived()
             btSerial.print("\n\nhelp - list commands\n");
             btSerial.print("wfactor - set lin scale factor\n");
             btSerial.print("woffset - set lin scale offset\n");
+            btSerial.print("maxweight - set beeper threshold\n");
             btSerial.print("data - display data\n");
+            btSerial.print("spam - stream weight\n");
         }
         if (input == String("data")) displaydata();
 
@@ -81,6 +105,11 @@ void datareceived()
         {
             btSerial.print("\nSet woffset: ");
             state = 2;
+        }
+        if (input == String("maxweight"))
+        {
+            btSerial.print("\nSet maxweight [g]: ");
+            state = 3;
         }
         if (input == String("spam"))
         {
@@ -101,17 +130,28 @@ void datareceived()
         state = 0;
         displaydata();
         break;
+    case 3:     // set maxweight
+        maxweight = input.toFloat();
+        EEPROM.put(LOCATION_MAXWEIGHT, input.toFloat());
+        EEPROM.commit();
+        state = 0;
+        displaydata();
+        break;
     }
 }
 
 void displaydata()
 {
+    btSerial.print("\n\nRaw Weight: ");
+    btSerial.print(myScale.getReading());
     btSerial.print("\n\nWeight: ");
     btSerial.print(weight);
     btSerial.print("\nWeight Factor: ");
     btSerial.print(myScale.getCalibrationFactor());
     btSerial.print("\nWeight Offset: ");
     btSerial.print(myScale.getZeroOffset());
+    btSerial.print("\nMaxweight: ");
+    btSerial.print(maxweight);
 }
 
 //Reads the current system settings from EEPROM
@@ -140,6 +180,9 @@ void setupScale(void)
     //Pass these values to the library
     myScale.setCalibrationFactor(weightFactor);
     myScale.setZeroOffset(weightOffset);
+
+    //load maxweight
+    EEPROM.get(LOCATION_MAXWEIGHT, maxweight);
 }
 
 bool updateAvgWeight()      // update moving Average and store value in weight
