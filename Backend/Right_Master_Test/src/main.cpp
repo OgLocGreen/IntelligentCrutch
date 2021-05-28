@@ -8,25 +8,33 @@
 #include <esp_now.h>
 
 #define EEPROM_SIZE 256
-#define FILTER_SIZE 1
+#define FILTER_SIZE 1       // 1: filter is off >1: length of filter array
 #define LOCATION_CALIBRATION_FACTOR 0
 #define LOCATION_ZERO_OFFSET 10
 #define LOCATION_MAXWEIGHT 20
+#define LOCATION_PATIENTWEIGHT 30
 #define LED_PIN 2
 #define BEEPER_PIN 16
+#define LOOP_FREQUENCY 20   // in Hz
 
 String input;
 int state = 0;
+unsigned long lastloop = 0;
+unsigned long lastmsg = 0;
 
-int weight = 0;
+int weight = 0;         // in grams
+int totalweight = 0;
+int footload = 0;
 long weightFilter[FILTER_SIZE] = { 0 };
 int fCount = 0;
-float weightSum = 0.0;
+float weightSum = 0.0;  // used for moving average filter
 bool spam = 1;
 float maxweight = 0;
+float patientweight = 0;
+bool receiveflag = false;
 
 int incomingReadings = 0;
-int weightSlave = 0;
+int weightSlave = 0;        
 //uint8_t broadcastAddress[] = {0x24, 0x0A, 0xC4, 0x5F, 0xD8, 0x8C};  // MAC Adress of crutch Nr. 1
 uint8_t broadcastAddress[] = {0x8C, 0xAA, 0xB5, 0x8A, 0xFC, 0x1C};  // MAC Adress of crutch Nr. 2
 
@@ -37,6 +45,7 @@ void datareceived();
 void displaydata();
 void setupScale(void);
 bool updateAvgWeight();
+void smartdelay();
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len);
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
@@ -86,37 +95,61 @@ void setup() {
   digitalWrite(LED_PIN, LOW);
 
   btSerial.begin("iUAGS");
+
+  lastloop = millis();
 }
 
 void loop() {
-  Serial.print("Raw reading: ");
-  Serial.println(myScale.getReading());
+    //Serial.print("Raw reading: ");
+    //Serial.println(myScale.getReading());
 
-  updateAvgWeight();
-  //Serial.print("   Filtered Weight: ");
-  //Serial.println(weight);
+    updateAvgWeight();
+    //Serial.print("   Filtered Weight: ");
+    //Serial.println(weight);
 
-  // signal overload
-  if (weight > maxweight)
-  {
-      digitalWrite(LED_PIN, HIGH);
-      digitalWrite(BEEPER_PIN, LOW);
-  }
-  else
-  {
-      digitalWrite(LED_PIN, LOW);
-      digitalWrite(BEEPER_PIN, HIGH);
-  }
+    if (spam) {
+        /*btSerial.print("\n\nWeight: ");
+        btSerial.print(weight);
+        btSerial.print("   Slave: ");
+        btSerial.print(weightSlave);*/
+        
+        if(receiveflag)
+        {
+            receiveflag = false;
+            //Serial.print("\nMessage delay: ");
+            //Serial.println(millis()-lastmsg);
+            lastmsg = millis();
+            totalweight = weight + weightSlave;
+            //btSerial.print("\n\nWeightsum: ");
+            //btSerial.print(totalweight / 1000.0);
+            btSerial.print("\n\nFootload: ");
+            if (totalweight > 2000) {
+                footload = patientweight - totalweight;
+            }
+            else {
+                footload = 0.0;
+            }
+            btSerial.print(footload / 1000.0);
+            // Send footload via ESP-NOW
+            esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &footload, sizeof(footload));
+        }
+    }
 
-  if (btSerial.available()) datareceived();
+    // signal overload
+    if (footload > maxweight)
+    {
+        digitalWrite(LED_PIN, HIGH);
+        digitalWrite(BEEPER_PIN, LOW);
+    }
+    else
+    {
+        digitalWrite(LED_PIN, LOW);
+        digitalWrite(BEEPER_PIN, HIGH);
+    }
 
-  delay(50);
-  if (spam) {
-      btSerial.print("\n\nWeight: ");
-      btSerial.print(weight);
-      btSerial.print("   Slave: ");
-      btSerial.print(weightSlave);
-  }
+    if (btSerial.available()) datareceived();
+
+    //smartdelay();
 }
 
 void datareceived()
@@ -130,6 +163,7 @@ void datareceived()
             btSerial.print("wfactor - set lin scale factor\n");
             btSerial.print("woffset - set lin scale offset\n");
             btSerial.print("maxweight - set beeper threshold\n");
+            btSerial.print("patweight - set patient weight");
             btSerial.print("data - display data\n");
             btSerial.print("spam - stream weight\n");
         }
@@ -149,6 +183,11 @@ void datareceived()
         {
             btSerial.print("\nSet maxweight [g]: ");
             state = 3;
+        }
+        if (input == String("patweight"))
+        {
+            btSerial.print("\nSet patweight [g]: ");
+            state = 4;
         }
         if (input == String("spam"))
         {
@@ -176,6 +215,13 @@ void datareceived()
         state = 0;
         displaydata();
         break;
+    case 4:     // set patweight
+        patientweight = input.toFloat();
+        EEPROM.put(LOCATION_PATIENTWEIGHT, input.toFloat());
+        EEPROM.commit();
+        state = 0;
+        displaydata();
+        break;
     }
 }
 
@@ -193,6 +239,8 @@ void displaydata()
     btSerial.print(myScale.getZeroOffset());
     btSerial.print("\nMaxweight: ");
     btSerial.print(maxweight);
+    btSerial.print("\nPatientweight: ");
+    btSerial.print(patientweight);
 }
 
 //Reads the current system settings from EEPROM
@@ -222,6 +270,10 @@ void setupScale(void)
 
     //load maxweight
     EEPROM.get(LOCATION_MAXWEIGHT, maxweight);
+
+    //load patientweight
+    EEPROM.get(LOCATION_PATIENTWEIGHT, patientweight);
+    
 }
 
 bool updateAvgWeight()      // update moving Average and store value in weight
@@ -244,21 +296,27 @@ bool updateAvgWeight()      // update moving Average and store value in weight
 }
 
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  Serial.print("\r\nLast Packet Send Status:\t");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
-  if (status ==0){
-    Serial.println("Delivery Success :)");
-  }
-  else{
-    Serial.println("Delivery Fail :(");
-  }
+    Serial.print("\r\nLast Packet Send Status:\t");
+    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
 
 // Callback when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-  memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
-  Serial.print("Bytes received: ");
-  Serial.println(len);
-  weightSlave = incomingReadings;
+    memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
+    //Serial.print("Bytes received: ");
+    //Serial.println(len);
+    weightSlave = incomingReadings;
+    receiveflag = true;
 }
 
+void smartdelay()
+{
+	int delaytime = 0;
+	delaytime = 1000 / LOOP_FREQUENCY - (millis() - LOOP_FREQUENCY);
+	if (delaytime < 0) delaytime = 0;
+	if (delaytime > (1000 / LOOP_FREQUENCY)) delaytime = (1000 / LOOP_FREQUENCY);
+    //Serial.print("\nloop period: ");
+    //Serial.println(millis()-lastloop);
+	delay(delaytime);
+	lastloop = millis();
+}

@@ -14,16 +14,19 @@
 #define LOCATION_MAXWEIGHT 20
 #define LED_PIN 2
 #define BEEPER_PIN 16
+#define LOOP_FREQUENCY 20   // in Hz
 
 String input;
 int state = 0;
+unsigned long lastloop = 0;
 
 int weight = 0.0;
 long weightFilter[FILTER_SIZE] = { 0 };
 int fCount = 0;
-float weightSum = 0.0;
+float weightSum = 0.0;  // used for moving average filter
 bool spam = 1;
 float maxweight = 0;
+float footload = 0;
 
 int incomingReadings = 0;
 uint8_t broadcastAddress[] = {0x24, 0x0A, 0xC4, 0x5F, 0xD8, 0x8C};  // MAC Adress of crutch Nr. 1
@@ -36,6 +39,7 @@ void datareceived();
 void displaydata();
 void setupScale(void);
 bool updateAvgWeight();
+void smartdelay();
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len);
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
@@ -84,45 +88,48 @@ void setup() {
   digitalWrite(LED_PIN, LOW);
 
   btSerial.begin("iUAGS2");
+
+  lastloop = millis();
 }
 
 void loop() {
-  Serial.print("Raw reading: ");
-  Serial.println(myScale.getReading());
+    //Serial.print("Raw reading: ");
+    //Serial.println(myScale.getReading());
 
-  updateAvgWeight();
-  //Serial.print("   Filtered Weight: ");
-  //Serial.println(weight);
+    updateAvgWeight();
+    //Serial.print("   Filtered Weight: ");
+    //Serial.println(weight);
 
-  // Send message via ESP-NOW
-  esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &weight, sizeof(weight));
-  
-  if (result == ESP_OK) {
-    Serial.println("Sent with success");
-  }
-  else {
-    Serial.println("Error sending the data");
-  }
+    if (spam) {
+        btSerial.print("\n\nWeight: ");
+        btSerial.print(weight);
+    }
 
-  // signal overload
-  if (weight > maxweight)
-  {
-      digitalWrite(LED_PIN, HIGH);
-      digitalWrite(BEEPER_PIN, LOW);
-  }
-  else
-  {
-      digitalWrite(LED_PIN, LOW);
-      digitalWrite(BEEPER_PIN, HIGH);
-  }
+    // Send message via ESP-NOW
+    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &weight, sizeof(weight));
+    if (result == ESP_OK) {
+      //Serial.println("Sent with success");
+    }
+    else {
+      Serial.println("Error sending the data");
+    }
 
-  if (btSerial.available()) datareceived();
+    // signal overload
+    if (footload > maxweight)
+    {
+        digitalWrite(LED_PIN, HIGH);
+        digitalWrite(BEEPER_PIN, LOW);
+    }
+    else
+    {
+        digitalWrite(LED_PIN, LOW);
+        digitalWrite(BEEPER_PIN, HIGH);
+    }
 
-  delay(50);
-  if (spam) {
-      btSerial.print("\n\nWeight: ");
-      btSerial.print(weight);
-  }
+    if (btSerial.available()) datareceived();
+
+    //delay(50);
+    smartdelay();
 }
 
 void datareceived()
@@ -250,18 +257,22 @@ bool updateAvgWeight()      // update moving Average and store value in weight
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("\r\nLast Packet Send Status:\t");
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
-  if (status ==0){
-    Serial.println("Delivery Success :)");
-  }
-  else{
-    Serial.println("Delivery Fail :(");
-  }
 }
 
 // Callback when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
-  Serial.print("Bytes received: ");
-  Serial.println(len);
-  //var_right = incomingReadings;
+  //Serial.print("Bytes received: ");
+  //Serial.println(len);
+  footload = incomingReadings;
+}
+
+void smartdelay()
+{
+	int delaytime = 0;
+	delaytime = 1000 / LOOP_FREQUENCY - (millis() - LOOP_FREQUENCY);
+	if (delaytime < 0) delaytime = 0;
+	if (delaytime > (1000 / LOOP_FREQUENCY)) delaytime = (1000 / LOOP_FREQUENCY);
+	delay(delaytime);
+	lastloop = millis();
 }
