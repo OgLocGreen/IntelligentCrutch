@@ -23,8 +23,8 @@ unsigned long lastloop = 0;
 unsigned long lastmsg = 0;
 
 int weight = 0;         // in grams
-int totalweight = 0;
-int footload = 0;
+int totalweight = 0;    // in grams
+int footload = 0;   
 long weightFilter[FILTER_SIZE] = { 0 };
 int fCount = 0;
 float weightSum = 0.0;  // used for moving average filter
@@ -32,6 +32,20 @@ bool spam = 1;
 float maxweight = 0;
 float patientweight = 0;
 bool receiveflag = false;
+
+float old_footload = 0;
+float numb_steps = 0;
+float numb_overload =0;
+float overload = 0;
+int low_threshold = 5;
+bool up = false;
+bool down = false;
+
+bool step = false;
+bool overload_flag = false;
+
+float overloadArray[10];
+int arrayIndex = 0;
 
 int incomingReadings = 0;
 int weightSlave = 0;        
@@ -46,6 +60,10 @@ void displaydata();
 void setupScale(void);
 bool updateAvgWeight();
 void smartdelay();
+
+void stepCounting();
+void overloadsCounting();
+void overloadStrength();
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len);
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
@@ -148,8 +166,13 @@ void loop() {
     }
 
     if (btSerial.available()) datareceived();
-
+    
     //smartdelay();
+
+    stepCounting();
+    overloadsCounting();
+    overloadStrength();
+    old_footload = footload;
 }
 
 void datareceived()
@@ -319,4 +342,53 @@ void smartdelay()
     //Serial.println(millis()-lastloop);
 	delay(delaytime);
 	lastloop = millis();
+}
+
+void stepCounting()
+{
+    if(old_footload > footload)
+    {
+        down = true;
+        up = false;
+    }
+    if(old_footload < footload)
+    {
+        up = true;
+        down = false;
+    }
+
+    if(!step && down && footload < low_threshold)
+    {
+        numb_steps++;
+        step = true;
+        overloadArray[arrayIndex] = overload;
+        arrayIndex++;
+        overload = 0;
+        overload_flag = false;
+    }
+
+    if(step && up && footload > low_threshold )
+    {
+        step = false;
+    }
+
+}
+
+void overloadsCounting()
+{
+    if (!overload_flag && !step && up && footload > maxweight)
+    {
+        overload_flag = true;
+        numb_overload++;
+    }
+}
+
+void overloadStrength()
+{
+    if(!step && old_footload < footload)
+    {
+        if (overload < footload - maxweight);
+        overload = footload - maxweight;
+    }
+
 }
