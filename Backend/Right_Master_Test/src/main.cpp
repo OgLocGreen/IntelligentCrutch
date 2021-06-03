@@ -385,10 +385,11 @@ void overloadsCounting()
 
 void overloadStrength()
 {
-    if(!step && old_footload < footload)
-    {
-        if (overload < footload - maxweight);
-        overload = footload - maxweight;
+    if(!step && overload_flag)
+    {   
+        if (overload == 0 || overload < footload - maxweight)
+        {
+           overload = footload - maxweight;
+        }
     }
-
 }
