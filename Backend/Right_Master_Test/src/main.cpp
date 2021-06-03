@@ -1,11 +1,11 @@
 #include <Arduino.h>
-
 #include "BluetoothSerial.h"
 #include <EEPROM.h>
 #include <Wire.h>
 #include <SparkFun_Qwiic_Scale_NAU7802_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_NAU7802
 #include <WiFi.h>
 #include <esp_now.h>
+#include <ArduinoJson.h>
 
 #define EEPROM_SIZE 256
 #define FILTER_SIZE 1       // 1: filter is off >1: length of filter array
@@ -68,6 +68,12 @@ void overloadStrength();
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len);
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 
+
+void sendMeasurementDataOverBluetooth();
+void sendAnaliticalDataOverBluetooth();
+
+void getRealWeight();
+
 void setup() {
   Serial.begin(115200);
   Serial.println("iUAGS Qwiic Scale Test");
@@ -118,18 +124,16 @@ void setup() {
 }
 
 void loop() {
-    //Serial.print("Raw reading: ");
-    //Serial.println(myScale.getReading());
-
+    getRealWeight();
+    /*
     updateAvgWeight();
-    //Serial.print("   Filtered Weight: ");
-    //Serial.println(weight);
+
 
     if (spam) {
-        /*btSerial.print("\n\nWeight: ");
-        btSerial.print(weight);
-        btSerial.print("   Slave: ");
-        btSerial.print(weightSlave);*/
+        // btSerial.print("\n\nWeight: ");
+        // btSerial.print(weight);
+        // btSerial.print("   Slave: ");
+        // btSerial.print(weightSlave);
         
         if(receiveflag)
         {
@@ -173,6 +177,7 @@ void loop() {
     overloadsCounting();
     overloadStrength();
     old_footload = footload;
+    */
 }
 
 void datareceived()
@@ -288,8 +293,8 @@ void setupScale(void)
     EEPROM.get(LOCATION_ZERO_OFFSET, weightOffset);         //Zero value that is found when scale is tared
 
     //Pass these values to the library
-    myScale.setCalibrationFactor(weightFactor);
-    myScale.setZeroOffset(weightOffset);
+    // myScale.setCalibrationFactor(weightFactor);
+    // myScale.setZeroOffset(weightOffset);
 
     //load maxweight
     EEPROM.get(LOCATION_MAXWEIGHT, maxweight);
@@ -302,15 +307,29 @@ void setupScale(void)
 bool updateAvgWeight()      // update moving Average and store value in weight
 {
     // if (myScale.available() == true)
-    {
+    //{
         if (fCount >= (FILTER_SIZE)) fCount = 0;
         weightSum = weightSum - weightFilter[fCount];
         weightFilter[fCount] = myScale.getWeight();
+        
+        Serial.print("wf: ");
+        Serial.print(weightFilter[fCount]);
+        
         weightSum = weightSum + weightFilter[fCount];
         weight = weightSum / (FILTER_SIZE);
         fCount++;
+        Serial.print("\tws: ");
+        Serial.print(weightSum);
+        Serial.print("\twg: ");
+        Serial.print(weight);
+
+        Serial.print("\tws: ");
+        Serial.print(weightSum/1000);
+        Serial.print("Kg\twg: ");
+        Serial.print(weight/1000);
+        Serial.println("Kg");
         return true;
-    }
+    //}
     /*else
     {
         Serial.print("\nError reading Scale");
@@ -319,8 +338,8 @@ bool updateAvgWeight()      // update moving Average and store value in weight
 }
 
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-    Serial.print("\r\nLast Packet Send Status:\t");
-    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+    // Serial.print("\r\nLast Packet Send Status:\t");
+    // Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
 
 // Callback when data is received
@@ -390,5 +409,73 @@ void overloadStrength()
         if (overload < footload - maxweight);
         overload = footload - maxweight;
     }
+}
+
+void sendMeasurementDataOverBluetooth()
+{
+    StaticJsonDocument<100> measurement;
+    measurement["time"] = millis(); // TODO? what time should be sent?
+    measurement["raw_right"] = weight;
+    measurement["raw_left"] = weightSlave;
+    measurement["footload"] = footload;
+    measurement["totalweight"] = totalweight;
+    char buffer[100];
+	size_t n = serializeJson(measurement, buffer);
+    btSerial.print(buffer);
+}
+
+void sendAnaliticalDataOverBluetooth()
+{
+    StaticJsonDocument<100> measurement;
+    measurement["steps"] = numb_steps;
+    measurement["nr_overload"] = numb_overload;
+    measurement["strengt_overloard"] = overload;
+    char buffer[100];
+	size_t n = serializeJson(measurement, buffer);
+    btSerial.print(buffer);
+}
+
+void getRealWeight()
+{
+    static long rw_lk[15] = {0, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000, 65000, 70000};
+    // static long rs_lk[15] = {-77000, 160000, 430000, 700000, 980000, 1230000, 1360000, 1420000, 1580000, 1660000, 1750000, 1820000, 1950000, 2040000, 2300000};
+    static long rs_lk[15] = {-85000, 110000, 370000, 630000, 810000, 900000, 1090000, 1200000, 1260000, 1310000, 1390000, 1470000, 1540000, 1610000, 1780000};
+    long reading = myScale.getReading();
+    Serial.print("gR: ");
+    Serial.print(reading);
+    byte lower_pos = 0;
+    byte upper_pos = 0;
+    for (byte i = 0; i < 14; i++)
+    {
+        if ((reading > rs_lk[i]) && (reading < rs_lk[i + 1]))
+        {
+            lower_pos = i;
+            upper_pos = i + 1;
+            break;
+        }
+    }
+    Serial.print(" in range : ");
+    Serial.print(rw_lk[lower_pos]);
+    Serial.print(" - ");
+    Serial.print(rw_lk[upper_pos]);
+
+    long real_weight = map(reading, rs_lk[lower_pos], rs_lk[upper_pos], rw_lk[lower_pos], rw_lk[upper_pos]);
+    //long real_weight = ((reading - rs_lk[lower_pos])*(rw_lk[upper_pos] - rw_lk[lower_pos]) / (rw_lk[lower_pos] - rs_lk[lower_pos])) + rw_lk[lower_pos];
+    Serial.print(" rw: ");
+    Serial.print(real_weight);
+    Serial.print(" fil: ");
+    static int fC = 0;
+    static int wSum = 0;
+    static int wFil[FILTER_SIZE] = {0};
+    if (fC >= (FILTER_SIZE)) fC = 0;
+    wSum -= wFil[fC];
+    wFil[fC] = real_weight;
+    wSum += wFil[fC];
+    int weight = wSum / FILTER_SIZE;
+    Serial.print(weight);
+    Serial.print(" gw: ");
+    Serial.print(real_weight/1000);
+
+    Serial.println();
 
 }
