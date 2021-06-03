@@ -292,6 +292,7 @@ void setupScale(void)
     EEPROM.get(LOCATION_CALIBRATION_FACTOR, weightFactor);  //Value used to convert the load cell reading to lbs or kg
     EEPROM.get(LOCATION_ZERO_OFFSET, weightOffset);         //Zero value that is found when scale is tared
 
+    // Dont pass the value if using the calibration table.
     //Pass these values to the library
     // myScale.setCalibrationFactor(weightFactor);
     // myScale.setZeroOffset(weightOffset);
@@ -411,7 +412,6 @@ void overloadStrength()
            overload = footload - maxweight;
         }
     }
-<<<<<<< HEAD
 }
 
 void sendMeasurementDataOverBluetooth()
