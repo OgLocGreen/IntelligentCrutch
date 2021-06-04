@@ -27,6 +27,7 @@ unsigned long lastmsg = 0;
 int weight = 0;         // in grams
 int totalweight = 0;    // in grams
 int footload = 0;   
+int new_body_weight = 0;
 long weightFilter[FILTER_SIZE] = { 0 };
 int fCount = 0;
 float weightSum = 0.0;  // used for moving average filter
@@ -307,6 +308,7 @@ void calculateMeasurement()
         totalweight = weight + weightSlave;
         if (totalweight > 2000) {
             footload = patientweight - totalweight;
+            footload = footload/1000;
         }
         else { 
             footload = 0.0;
@@ -333,6 +335,8 @@ void measureBodyWeight()
         // preparation in 2 second
         if (state == 0)
         {
+            spam = false;
+            send_analitic_data = false;
             digitalWrite(BEEPER_PIN, LOW);
             if (millis() - last_time > 2000)
             {
@@ -350,6 +354,15 @@ void measureBodyWeight()
                 state = 0;
                 last_time = millis();
                 once = false;
+                spam = false;
+                send_analitic_data = false;
+                StaticJsonDocument<20> measurement;
+                new_body_weight = max / 1000;
+                measurement["measured_weight"] = new_body_weight;
+                char buffer[20];
+	            size_t n = serializeJson(measurement, buffer);
+                btSerial.print(buffer);
+                measuring_weight = false;
             }
         }       
     }
