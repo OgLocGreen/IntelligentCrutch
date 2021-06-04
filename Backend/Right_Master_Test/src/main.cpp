@@ -30,8 +30,9 @@ int footload = 0;
 long weightFilter[FILTER_SIZE] = { 0 };
 int fCount = 0;
 float weightSum = 0.0;  // used for moving average filter
-bool spam = 1;
-bool send_analitic_data = 0;
+bool spam = true;
+bool send_analitic_data = false;
+bool measuring_weight = false;
 float maxweight = 0;
 float patientweight = 0;
 long real_weight[15];
@@ -80,7 +81,7 @@ template <class T> int EEPROM_writeAnything(int ee, const T& value);
 template <class T> int EEPROM_readAnything(int ee, T& value);
 void getRealWeight();
 void BluetoothCommandHandler();
-
+void calculateMeasurement();
 
 void setup() {
   Serial.begin(115200);
@@ -132,26 +133,6 @@ void setup() {
 
 void loop() {
     updateAvgWeight();
-    if(receiveflag)
-    {
-        receiveflag = false;
-        lastmsg = millis();
-        totalweight = weight + weightSlave;
-        if (totalweight > 2000) {
-            footload = patientweight - totalweight;
-        }
-        else { 
-            footload = 0.0;
-        }
-        esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &footload, sizeof(footload));
-        if (spam) {
-            sendMeasurementDataOverBluetooth();
-        }
-        if (send_analitic_data)
-        {
-            sendAnaliticalDataOverBluetooth();
-        }
-    }
 
     // signal overload
     if (footload > maxweight)
@@ -168,6 +149,7 @@ void loop() {
     overloadsCounting();
     overloadStrength();
     old_footload = footload;
+    calculateMeasurement();
     BluetoothCommandHandler();
 }
 
@@ -230,7 +212,7 @@ void BluetoothCommandHandler()  // This is a task.
         }
         else if (cmd.equals("measure_weight"))
         {
-
+            measuring_weight = true;
         }
         else
         {
@@ -247,16 +229,6 @@ void BluetoothCommandHandler()  // This is a task.
 
 void displaydata()
 {
-    btSerial.print("\n\nRaw Weight: ");
-    btSerial.print(myScale.getReading());
-    btSerial.print("\nWeight Master: ");
-    btSerial.print(weight);
-    btSerial.print("\nWeight Slave: ");
-    btSerial.print(weightSlave);
-    btSerial.print("\nWeight Factor: ");
-    btSerial.print(myScale.getCalibrationFactor());
-    btSerial.print("\nWeight Offset: ");
-    btSerial.print(myScale.getZeroOffset());
     btSerial.print("\nMaxweight: ");
     btSerial.print(maxweight);
     btSerial.print("\nPatientweight: ");
@@ -325,6 +297,64 @@ bool updateAvgWeight()      // update moving Average and store value in weight
     return true;
 }
 
+void calculateMeasurement()
+{
+    
+    if(receiveflag)
+    {
+        receiveflag = false;
+        lastmsg = millis();
+        totalweight = weight + weightSlave;
+        if (totalweight > 2000) {
+            footload = patientweight - totalweight;
+        }
+        else { 
+            footload = 0.0;
+        }
+        esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &footload, sizeof(footload));
+        if (spam) sendMeasurementDataOverBluetooth();
+        if (send_analitic_data) sendAnaliticalDataOverBluetooth();
+    }
+}
+
+void measureBodyWeight()
+{
+    static long last_time = millis();
+    static byte state = 0;
+    static bool once = 0;
+    static long max = 0;
+    if (measuring_weight)
+    {
+        if (!once)
+        {
+            last_time = millis();
+            once = true;
+        }
+        // preparation in 2 second
+        if (state == 0)
+        {
+            digitalWrite(BEEPER_PIN, LOW);
+            if (millis() - last_time > 2000)
+            {
+                state = 1;
+                last_time = millis();
+            }
+        }
+        // measurement in 5 second
+        if (state == 1) {
+            digitalWrite(BEEPER_PIN, HIGH);
+            // search the maximum value
+            max = max <= totalweight ? totalweight : max;
+            if (millis() - last_time > 5000)
+            {
+                state = 0;
+                last_time = millis();
+                once = false;
+            }
+        }       
+    }
+}
+
 
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
     // Serial.print("\r\nLast Packet Send Status:\t");
@@ -382,7 +412,6 @@ void stepCounting()
     {
         step = false;
     }
-
 }
 
 
@@ -418,7 +447,6 @@ void sendMeasurementDataOverBluetooth()
         measurement["c_right"] = weight;
         measurement["c_left"] = weightSlave;
         measurement["footload"] = footload;
-        measurement["totalweight"] = totalweight;
         char buffer[100];
 	    size_t n = serializeJson(measurement, buffer);
         btSerial.print(buffer);
