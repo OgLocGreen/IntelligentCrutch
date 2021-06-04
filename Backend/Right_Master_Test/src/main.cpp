@@ -9,10 +9,10 @@
 
 #define EEPROM_SIZE 256
 #define FILTER_SIZE 1       // 1: filter is off >1: length of filter array
-#define LOCATION_CALIBRATION_FACTOR 0
-#define LOCATION_ZERO_OFFSET 10
-#define LOCATION_MAXWEIGHT 20
-#define LOCATION_PATIENTWEIGHT 30
+#define LOCATION_MAXWEIGHT 0
+#define LOCATION_PATIENTWEIGHT 1
+#define LOCATION_REAL_WEIGHT 2
+#define LOCATION_READING_VAL 100
 #define LED_PIN 2
 #define BEEPER_PIN 16
 #define LOOP_FREQUENCY 20   // in Hz
@@ -31,6 +31,8 @@ float weightSum = 0.0;  // used for moving average filter
 bool spam = 1;
 float maxweight = 0;
 float patientweight = 0;
+long real_weight[15];
+long raw_value[15];
 bool receiveflag = false;
 
 float old_footload = 0;
@@ -71,13 +73,14 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 
 void sendMeasurementDataOverBluetooth();
 void sendAnaliticalDataOverBluetooth();
-
+template <class T> int EEPROM_writeAnything(int ee, const T& value);
+template <class T> int EEPROM_readAnything(int ee, T& value);
 void getRealWeight();
+
 
 void setup() {
   Serial.begin(115200);
   Serial.println("iUAGS Qwiic Scale Test");
-
 
   // Set device as a Wi-Fi Station
   WiFi.mode(WIFI_STA);
@@ -117,17 +120,15 @@ void setup() {
   digitalWrite(LED_PIN, HIGH);
   delay(200);
   digitalWrite(LED_PIN, LOW);
-
   btSerial.begin("iUAGS");
-
   lastloop = millis();
 }
 
 void loop() {
-    getRealWeight();
-    /*
+    //getRealWeight();
+    
     updateAvgWeight();
-
+    /*
 
     if (spam) {
         // btSerial.print("\n\nWeight: ");
@@ -223,18 +224,18 @@ void datareceived()
         }
         break;
     case 1:     // setWeightFactor
-        myScale.setCalibrationFactor(input.toFloat());
+        /*myScale.setCalibrationFactor(input.toFloat());
         EEPROM.put(LOCATION_CALIBRATION_FACTOR, input.toFloat());
         EEPROM.commit();
         state = 0;
-        displaydata();
+        displaydata();*/
         break;
     case 2:     // setWeightOffset
-        myScale.setZeroOffset(long(input.toFloat()));
+        /*myScale.setZeroOffset(long(input.toFloat()));
         EEPROM.put(LOCATION_ZERO_OFFSET, long(input.toFloat()));
         EEPROM.commit();
         state = 0;
-        displaydata();
+        displaydata();*/
         break;
     case 3:     // set maxweight
         maxweight = input.toFloat();
@@ -274,9 +275,6 @@ void displaydata()
 //Reads the current system settings from EEPROM
 void setupScale(void)
 {
-    long weightOffset = 0;
-    float weightFactor = 0.0;
-
     Wire.begin();
 
     if (myScale.begin() == false)
@@ -285,57 +283,53 @@ void setupScale(void)
         while (1);
     }
     Serial.println("Scale detected!");
-
-    myScale.setGain(NAU7802_GAIN_8);    // Gain before A/D Converter
-
-    //read from Flash
-    EEPROM.get(LOCATION_CALIBRATION_FACTOR, weightFactor);  //Value used to convert the load cell reading to lbs or kg
-    EEPROM.get(LOCATION_ZERO_OFFSET, weightOffset);         //Zero value that is found when scale is tared
-
-    // Dont pass the value if using the calibration table.
-    //Pass these values to the library
-    // myScale.setCalibrationFactor(weightFactor);
-    // myScale.setZeroOffset(weightOffset);
+    
+    // Gain before A/D Converter
+    myScale.setGain(NAU7802_GAIN_8);    
 
     //load maxweight
     EEPROM.get(LOCATION_MAXWEIGHT, maxweight);
 
     //load patientweight
     EEPROM.get(LOCATION_PATIENTWEIGHT, patientweight);
+
+    //load real weight from calibration table
+    EEPROM_readAnything(LOCATION_REAL_WEIGHT, real_weight);
     
+    //load real value from calibration table
+    EEPROM_readAnything(LOCATION_READING_VAL, raw_value);
 }
 
 bool updateAvgWeight()      // update moving Average and store value in weight
 {
-    // if (myScale.available() == true)
-    //{
-        if (fCount >= (FILTER_SIZE)) fCount = 0;
-        weightSum = weightSum - weightFilter[fCount];
-        weightFilter[fCount] = myScale.getWeight();
-        
-        Serial.print("wf: ");
-        Serial.print(weightFilter[fCount]);
-        
-        weightSum = weightSum + weightFilter[fCount];
-        weight = weightSum / (FILTER_SIZE);
-        fCount++;
-        Serial.print("\tws: ");
-        Serial.print(weightSum);
-        Serial.print("\twg: ");
-        Serial.print(weight);
-
-        Serial.print("\tws: ");
-        Serial.print(weightSum/1000);
-        Serial.print("Kg\twg: ");
-        Serial.print(weight/1000);
-        Serial.println("Kg");
-        return true;
-    //}
-    /*else
+    long raw_reading = myScale.getReading();
+    uint8_t lower_pos = 0;
+    uint8_t upper_pos = 0;
+    for (byte i = 0; i < 14; i++)
     {
-        Serial.print("\nError reading Scale");
-        return false;
-    }*/
+        if ((raw_reading > raw_value[i]) && (raw_reading < raw_value[i + 1]))
+        {
+            lower_pos = i;
+            upper_pos = i + 1;
+            break;
+        }
+    }
+    long calib_weight = map(raw_reading, raw_value[lower_pos], raw_value[upper_pos], real_weight[lower_pos], real_weight[upper_pos]);
+
+    if (fCount >= (FILTER_SIZE)) fCount = 0;
+    weightSum -= weightFilter[fCount];
+    weightFilter[fCount] = calib_weight;        
+    weightSum = weightSum + weightFilter[fCount];
+    weight = weightSum / (FILTER_SIZE);
+    fCount++;
+    Serial.print("raw: ");
+    Serial.print(raw_reading);
+    Serial.print(" weight: ");
+    Serial.print(weight);
+    Serial.print(" weight: ");
+    Serial.print(weight/1000);
+    Serial.println(" KG");
+    return true;
 }
 
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
@@ -463,7 +457,6 @@ void getRealWeight()
     Serial.print(rw_lk[upper_pos]);
 
     long real_weight = map(reading, rs_lk[lower_pos], rs_lk[upper_pos], rw_lk[lower_pos], rw_lk[upper_pos]);
-    //long real_weight = ((reading - rs_lk[lower_pos])*(rw_lk[upper_pos] - rw_lk[lower_pos]) / (rw_lk[lower_pos] - rs_lk[lower_pos])) + rw_lk[lower_pos];
     Serial.print(" rw: ");
     Serial.print(real_weight);
     Serial.print(" fil: ");
@@ -481,4 +474,26 @@ void getRealWeight()
 
     Serial.println();
 
+}
+
+template <class T> int EEPROM_writeAnything(int ee, const T& value)
+{
+    const byte* p = (const byte*)(const void*)&value;
+    unsigned int i;
+    for (i = 0; i < sizeof(value); i++){
+        EEPROM.write(ee++, *p++);
+    }
+    return i;
+}
+
+
+template <class T> int EEPROM_readAnything(int ee, T& value)
+{
+    byte* p = (byte*)(void*)&value;
+    unsigned int i;
+    for (i = 0; i < sizeof(value); i++)
+    {
+        *p++ = EEPROM.read(ee++);
+    }
+    return i;
 }
