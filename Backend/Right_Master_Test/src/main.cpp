@@ -8,14 +8,16 @@
 #include <ArduinoJson.h>
 
 #define EEPROM_SIZE 256
-#define FILTER_SIZE 1       // 1: filter is off >1: length of filter array
+#define FILTER_SIZE 100       // 1: filter is off >1: length of filter array
 #define LOCATION_MAXWEIGHT 0
-#define LOCATION_PATIENTWEIGHT 1
-#define LOCATION_REAL_WEIGHT 2
-#define LOCATION_READING_VAL 100
+#define LOCATION_PATIENTWEIGHT 10
+#define LOCATION_SAVED_STEPS 30
+#define LOCATION_REAL_WEIGHT 40
+#define LOCATION_READING_VAL 140
 #define LED_PIN 2
 #define BEEPER_PIN 16
 #define LOOP_FREQUENCY 20   // in Hz
+#define TIME_SEND_MEASUREMENT 50
 
 String input;
 int state = 0;
@@ -29,6 +31,7 @@ long weightFilter[FILTER_SIZE] = { 0 };
 int fCount = 0;
 float weightSum = 0.0;  // used for moving average filter
 bool spam = 1;
+bool send_analitic_data = 0;
 float maxweight = 0;
 float patientweight = 0;
 long real_weight[15];
@@ -76,6 +79,7 @@ void sendAnaliticalDataOverBluetooth();
 template <class T> int EEPROM_writeAnything(int ee, const T& value);
 template <class T> int EEPROM_readAnything(int ee, T& value);
 void getRealWeight();
+void BluetoothCommandHandler();
 
 
 void setup() {
@@ -122,39 +126,30 @@ void setup() {
   digitalWrite(LED_PIN, LOW);
   btSerial.begin("iUAGS");
   lastloop = millis();
+  // xTaskCreatePinnedToCore(BluetoothCommandHandler, "AnalogReadA3", 1024, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
 }
 
-void loop() {
-    //getRealWeight();
-    
-    updateAvgWeight();
-    /*
 
-    if (spam) {
-        // btSerial.print("\n\nWeight: ");
-        // btSerial.print(weight);
-        // btSerial.print("   Slave: ");
-        // btSerial.print(weightSlave);
-        
-        if(receiveflag)
+void loop() {
+    updateAvgWeight();
+    if(receiveflag)
+    {
+        receiveflag = false;
+        lastmsg = millis();
+        totalweight = weight + weightSlave;
+        if (totalweight > 2000) {
+            footload = patientweight - totalweight;
+        }
+        else { 
+            footload = 0.0;
+        }
+        esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &footload, sizeof(footload));
+        if (spam) {
+            sendMeasurementDataOverBluetooth();
+        }
+        if (send_analitic_data)
         {
-            receiveflag = false;
-            //Serial.print("\nMessage delay: ");
-            //Serial.println(millis()-lastmsg);
-            lastmsg = millis();
-            totalweight = weight + weightSlave;
-            //btSerial.print("\n\nWeightsum: ");
-            //btSerial.print(totalweight / 1000.0);
-            btSerial.print("\n\nFootload: ");
-            if (totalweight > 2000) {
-                footload = patientweight - totalweight;
-            }
-            else {
-                footload = 0.0;
-            }
-            btSerial.print(footload / 1000.0);
-            // Send footload via ESP-NOW
-            esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &footload, sizeof(footload));
+            sendAnaliticalDataOverBluetooth();
         }
     }
 
@@ -169,90 +164,86 @@ void loop() {
         digitalWrite(LED_PIN, LOW);
         digitalWrite(BEEPER_PIN, HIGH);
     }
-
-    if (btSerial.available()) datareceived();
-    
-    //smartdelay();
-
     stepCounting();
     overloadsCounting();
     overloadStrength();
     old_footload = footload;
-    */
+    BluetoothCommandHandler();
 }
 
-void datareceived()
+void BluetoothCommandHandler()  // This is a task.
 {
-    input = btSerial.readString();
-    switch (state)
+    static bool write_eeprom = false;
+    while (btSerial.available())
     {
-    case 0:
-        if (input == String("help")) {						// help
-            btSerial.print("\n\nhelp - list commands\n");
-            btSerial.print("wfactor - set lin scale factor\n");
-            btSerial.print("woffset - set lin scale offset\n");
-            btSerial.print("maxweight - set beeper threshold\n");
-            btSerial.print("patweight - set patient weight");
-            btSerial.print("data - display data\n");
-            btSerial.print("spam - stream weight\n");
-        }
-        if (input == String("data")) displaydata();
-
-        if (input == String("wfactor"))
-        {
-            btSerial.print("\nSet wfactor: ");
-            state = 1;
-        }
-        if (input == String("woffset"))
-        {
-            btSerial.print("\nSet woffset: ");
-            state = 2;
-        }
-        if (input == String("maxweight"))
-        {
-            btSerial.print("\nSet maxweight [g]: ");
-            state = 3;
-        }
-        if (input == String("patweight"))
-        {
-            btSerial.print("\nSet patweight [g]: ");
-            state = 4;
-        }
-        if (input == String("spam"))
+        String raw_cmd = btSerial.readStringUntil('\n');
+        StaticJsonDocument<150> receivedMsg;
+        deserializeJson(receivedMsg, raw_cmd.c_str());
+        String cmd = receivedMsg["cmd"];
+        if (cmd.equals("spam"))
         {
             spam = !spam;
         }
-        break;
-    case 1:     // setWeightFactor
-        /*myScale.setCalibrationFactor(input.toFloat());
-        EEPROM.put(LOCATION_CALIBRATION_FACTOR, input.toFloat());
+        else if (cmd.equals("analitical"))
+        {
+            send_analitic_data = !send_analitic_data;
+        }
+        else if (cmd.equals("set_calib"))
+        {
+            // "{ "cmd" : "set_calib", "row": 12, "real_weight": 70000, "reading_val" : 112000 }""
+            uint8_t row = receivedMsg["row"];
+            long new_real_weight = receivedMsg["real_weight"];
+            long new_raw_value = receivedMsg["reading_val"];
+            if (new_real_weight != real_weight[row]){
+                real_weight[row] = new_real_weight;
+                EEPROM_writeAnything(LOCATION_REAL_WEIGHT, real_weight);
+                write_eeprom = true;
+            }
+            if (new_raw_value != raw_value[row])
+            {
+                raw_value[row] = new_raw_value;
+                EEPROM_writeAnything(LOCATION_READING_VAL, raw_value);
+                write_eeprom = true;
+            }
+        }
+        else if (cmd.equals("set_pat_weight"))
+        {
+            // "{ "cmd" : "set_pat_weight", "value" : 100 }""
+            uint8_t wg = receivedMsg["value"];
+            if (patientweight != wg)
+            {
+                patientweight = wg;
+                EEPROM_writeAnything(LOCATION_PATIENTWEIGHT, patientweight);
+                write_eeprom = true;
+            }
+        }
+        else if (cmd.equals("set_max_weight"))
+        {
+            // "{ "cmd" : "set_max_weight", "value" : 100 }""
+            uint8_t mg = receivedMsg["value"];
+            if (maxweight != mg)
+            {
+                maxweight = mg;
+                EEPROM_writeAnything(LOCATION_MAXWEIGHT, maxweight);
+                write_eeprom = true;
+            }
+        }
+        else if (cmd.equals("measure_weight"))
+        {
+
+        }
+        else
+        {
+
+        }
+    }
+    if (write_eeprom)
+    {
         EEPROM.commit();
-        state = 0;
-        displaydata();*/
-        break;
-    case 2:     // setWeightOffset
-        /*myScale.setZeroOffset(long(input.toFloat()));
-        EEPROM.put(LOCATION_ZERO_OFFSET, long(input.toFloat()));
-        EEPROM.commit();
-        state = 0;
-        displaydata();*/
-        break;
-    case 3:     // set maxweight
-        maxweight = input.toFloat();
-        EEPROM.put(LOCATION_MAXWEIGHT, input.toFloat());
-        EEPROM.commit();
-        state = 0;
-        displaydata();
-        break;
-    case 4:     // set patweight
-        patientweight = input.toFloat();
-        EEPROM.put(LOCATION_PATIENTWEIGHT, input.toFloat());
-        EEPROM.commit();
-        state = 0;
-        displaydata();
-        break;
+        write_eeprom = false;
     }
 }
+
 
 void displaydata()
 {
@@ -315,27 +306,31 @@ bool updateAvgWeight()      // update moving Average and store value in weight
         }
     }
     long calib_weight = map(raw_reading, raw_value[lower_pos], raw_value[upper_pos], real_weight[lower_pos], real_weight[upper_pos]);
-
+    
+    if (calib_weight <= 2000) calib_weight = 0;
     if (fCount >= (FILTER_SIZE)) fCount = 0;
+    
     weightSum -= weightFilter[fCount];
     weightFilter[fCount] = calib_weight;        
     weightSum = weightSum + weightFilter[fCount];
     weight = weightSum / (FILTER_SIZE);
     fCount++;
-    Serial.print("raw: ");
+    /*Serial.print("raw: ");
     Serial.print(raw_reading);
     Serial.print(" weight: ");
     Serial.print(weight);
     Serial.print(" weight: ");
     Serial.print(weight/1000);
-    Serial.println(" KG");
+    Serial.println(" KG");*/
     return true;
 }
+
 
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
     // Serial.print("\r\nLast Packet Send Status:\t");
     // Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
+
 
 // Callback when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
@@ -345,6 +340,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     weightSlave = incomingReadings;
     receiveflag = true;
 }
+
 
 void smartdelay()
 {
@@ -357,6 +353,7 @@ void smartdelay()
 	delay(delaytime);
 	lastloop = millis();
 }
+
 
 void stepCounting()
 {
@@ -388,6 +385,7 @@ void stepCounting()
 
 }
 
+
 void overloadsCounting()
 {
     if (!overload_flag && !step && up && footload > maxweight)
@@ -396,6 +394,7 @@ void overloadsCounting()
         numb_overload++;
     }
 }
+
 
 void overloadStrength()
 {
@@ -408,73 +407,42 @@ void overloadStrength()
     }
 }
 
+
 void sendMeasurementDataOverBluetooth()
 {
-    StaticJsonDocument<100> measurement;
-    measurement["time"] = millis(); // TODO? what time should be sent?
-    measurement["raw_right"] = weight;
-    measurement["raw_left"] = weightSlave;
-    measurement["footload"] = footload;
-    measurement["totalweight"] = totalweight;
-    char buffer[100];
-	size_t n = serializeJson(measurement, buffer);
-    btSerial.print(buffer);
+    static int last = millis();
+    if (millis() - last >= TIME_SEND_MEASUREMENT)
+    {
+        StaticJsonDocument<100> measurement;
+        measurement["time"] = millis(); // TODO? what time should be sent?
+        measurement["c_right"] = weight;
+        measurement["c_left"] = weightSlave;
+        measurement["footload"] = footload;
+        measurement["totalweight"] = totalweight;
+        char buffer[100];
+	    size_t n = serializeJson(measurement, buffer);
+        btSerial.print(buffer);
+        last = millis();
+    }
 }
+
 
 void sendAnaliticalDataOverBluetooth()
 {
-    StaticJsonDocument<100> measurement;
-    measurement["steps"] = numb_steps;
-    measurement["nr_overload"] = numb_overload;
-    measurement["strengt_overloard"] = overload;
-    char buffer[100];
-	size_t n = serializeJson(measurement, buffer);
-    btSerial.print(buffer);
-}
-
-void getRealWeight()
-{
-    static long rw_lk[15] = {0, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000, 65000, 70000};
-    // static long rs_lk[15] = {-77000, 160000, 430000, 700000, 980000, 1230000, 1360000, 1420000, 1580000, 1660000, 1750000, 1820000, 1950000, 2040000, 2300000};
-    static long rs_lk[15] = {-85000, 110000, 370000, 630000, 810000, 900000, 1090000, 1200000, 1260000, 1310000, 1390000, 1470000, 1540000, 1610000, 1780000};
-    long reading = myScale.getReading();
-    Serial.print("gR: ");
-    Serial.print(reading);
-    byte lower_pos = 0;
-    byte upper_pos = 0;
-    for (byte i = 0; i < 14; i++)
+    static int last = millis();
+    if (millis() - last >= TIME_SEND_MEASUREMENT)
     {
-        if ((reading > rs_lk[i]) && (reading < rs_lk[i + 1]))
-        {
-            lower_pos = i;
-            upper_pos = i + 1;
-            break;
-        }
+        StaticJsonDocument<100> measurement;
+        measurement["steps"] = numb_steps;
+        measurement["nr_overload"] = numb_overload;
+        measurement["strengt_overloard"] = overload;
+        char buffer[100];
+	    size_t n = serializeJson(measurement, buffer);
+        btSerial.print(buffer);
+        last = millis();
     }
-    Serial.print(" in range : ");
-    Serial.print(rw_lk[lower_pos]);
-    Serial.print(" - ");
-    Serial.print(rw_lk[upper_pos]);
-
-    long real_weight = map(reading, rs_lk[lower_pos], rs_lk[upper_pos], rw_lk[lower_pos], rw_lk[upper_pos]);
-    Serial.print(" rw: ");
-    Serial.print(real_weight);
-    Serial.print(" fil: ");
-    static int fC = 0;
-    static int wSum = 0;
-    static int wFil[FILTER_SIZE] = {0};
-    if (fC >= (FILTER_SIZE)) fC = 0;
-    wSum -= wFil[fC];
-    wFil[fC] = real_weight;
-    wSum += wFil[fC];
-    int weight = wSum / FILTER_SIZE;
-    Serial.print(weight);
-    Serial.print(" gw: ");
-    Serial.print(real_weight/1000);
-
-    Serial.println();
-
 }
+
 
 template <class T> int EEPROM_writeAnything(int ee, const T& value)
 {
