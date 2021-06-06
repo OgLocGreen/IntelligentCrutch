@@ -26,7 +26,8 @@ unsigned long lastmsg = 0;
 
 int weight = 0;         // in grams
 int totalweight = 0;    // in grams
-int footload = 0;   
+int footload = 0;
+int maxfootload = 0; 
 int new_body_weight = 0;
 long weightFilter[FILTER_SIZE] = { 0 };
 int fCount = 0;
@@ -43,7 +44,7 @@ bool receiveflag = false;
 float old_totalweight = 0;
 float numb_steps = 0;
 float numb_overload =0;
-float overload = 0;
+float maxtotalweight = 0;
 int low_threshold = 5;
 bool up = false;
 bool down = false;
@@ -68,13 +69,10 @@ void setupScale(void);
 bool updateAvgWeight();
 void smartdelay();
 
-void stepCounting();
-void overloadsCounting();
-void overloadStrength();
+void checkstep_overload();
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len);
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
-
 
 void sendMeasurementDataOverBluetooth();
 void sendAnaliticalDataOverBluetooth();
@@ -147,9 +145,7 @@ void loop() {
         digitalWrite(BEEPER_PIN, HIGH);
     }
     stepCounting();
-    overloadsCounting();
-    overloadStrength();
-    old_totalweight = footload;
+    old_totalweight = totalweight;
     calculateMeasurement();
     BluetoothCommandHandler();
 }
@@ -398,54 +394,27 @@ void smartdelay()
 }
 
 
-void stepCounting()
+void checkstep_overload()
 {
-    if(old_totalweight > totalweight)
+    if (maxtotalweight < totalweight)
     {
-        down = true;
-        up = false;
-    }
-    if(old_totalweight < totalweight)
-    {
-        up = true;
-        down = false;
+        maxtotalweight = totalweight; // Hier eigenentlich noch patientweight - totalweight 
     }
 
-    if(!step && up && totalweight < low_threshold)
+    if(!step && totalweight > low_threshold)   //Schritt beginn
     {
         numb_steps++;
         step = true;
-        overload = 0;
-        overload_flag = false;
     }
 
-    if(step && down && totalweight > low_threshold )
+    if(step && totalweight < low_threshold)    // Schritt ende
     {
         step = false;
+        maxfootload = patientweight - maxtotalweight;
+        maxtotalweight = 0;
     }
 }
 
-
-void overloadsCounting()
-{
-    if (!overload_flag && step &&  patientweight - totalweight > maxweight)
-    {
-        overload_flag = true;
-        numb_overload++;
-    }
-}
-
-
-void overloadStrength()
-{
-    if(step && overload_flag)
-    {   
-        if (overload == 0 || overload < totalweight)
-        {
-           overload = totalweight; // Hier eigenentlich noch patientweight - totalweight 
-        }
-    }
-}
 
 
 void sendMeasurementDataOverBluetooth()
@@ -474,7 +443,7 @@ void sendAnaliticalDataOverBluetooth()
         StaticJsonDocument<100> measurement;
         measurement["steps"] = numb_steps;
         measurement["nr_ov"] = numb_overload;
-        measurement["st_ov"] = overload;
+        measurement["st_ov"] = maxfootload;
         char buffer[100];
 	    size_t n = serializeJson(measurement, buffer);
         btSerial.print(buffer);
