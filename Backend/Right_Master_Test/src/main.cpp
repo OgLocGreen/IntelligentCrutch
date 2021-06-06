@@ -40,7 +40,7 @@ long real_weight[15];
 long raw_value[15];
 bool receiveflag = false;
 
-float old_footload = 0;
+float old_totalweight = 0;
 float numb_steps = 0;
 float numb_overload =0;
 float overload = 0;
@@ -149,7 +149,7 @@ void loop() {
     stepCounting();
     overloadsCounting();
     overloadStrength();
-    old_footload = footload;
+    old_totalweight = footload;
     calculateMeasurement();
     BluetoothCommandHandler();
 }
@@ -400,28 +400,26 @@ void smartdelay()
 
 void stepCounting()
 {
-    if(old_footload > footload)
+    if(old_totalweight > totalweight)
     {
         down = true;
         up = false;
     }
-    if(old_footload < footload)
+    if(old_totalweight < totalweight)
     {
         up = true;
         down = false;
     }
 
-    if(!step && down && footload < low_threshold)
+    if(!step && up && totalweight < low_threshold)
     {
         numb_steps++;
         step = true;
-        overloadArray[arrayIndex] = overload;
-        arrayIndex++;
         overload = 0;
         overload_flag = false;
     }
 
-    if(step && up && footload > low_threshold )
+    if(step && down && totalweight > low_threshold )
     {
         step = false;
     }
@@ -430,7 +428,7 @@ void stepCounting()
 
 void overloadsCounting()
 {
-    if (!overload_flag && !step && up && footload > maxweight)
+    if (!overload_flag && step &&  patientweight - totalweight > maxweight)
     {
         overload_flag = true;
         numb_overload++;
@@ -440,11 +438,11 @@ void overloadsCounting()
 
 void overloadStrength()
 {
-    if(!step && overload_flag)
+    if(step && overload_flag)
     {   
-        if (overload == 0 || overload < footload - maxweight)
+        if (overload == 0 || overload < totalweight)
         {
-           overload = footload - maxweight;
+           overload = totalweight; // Hier eigenentlich noch patientweight - totalweight 
         }
     }
 }
