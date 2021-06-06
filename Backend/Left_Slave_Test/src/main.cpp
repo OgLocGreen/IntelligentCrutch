@@ -1,17 +1,19 @@
 #include <Arduino.h>
-
 #include "BluetoothSerial.h"
 #include <EEPROM.h>
 #include <Wire.h>
 #include <SparkFun_Qwiic_Scale_NAU7802_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_NAU7802
 #include <WiFi.h>
 #include <esp_now.h>
+#include <ArduinoJson.h>
 
-#define EEPROM_SIZE 256
-#define FILTER_SIZE 1
-#define LOCATION_CALIBRATION_FACTOR 0
-#define LOCATION_ZERO_OFFSET 10
-#define LOCATION_MAXWEIGHT 20
+#define EEPROM_SIZE 512
+#define FILTER_SIZE 100
+#define LOCATION_MAXWEIGHT 0
+#define LOCATION_PATIENTWEIGHT 10
+#define LOCATION_SAVED_STEPS 30
+#define LOCATION_REAL_WEIGHT 40
+#define LOCATION_READING_VAL 140
 #define LED_PIN 2
 #define BEEPER_PIN 16
 #define LOOP_FREQUENCY 20   // in Hz
@@ -27,6 +29,8 @@ float weightSum = 0.0;  // used for moving average filter
 bool spam = 1;
 float maxweight = 0;
 float footload = 0;
+long real_weight[15];
+long raw_value[15];
 
 int incomingReadings = 0;
 uint8_t broadcastAddress[] = {0x24, 0x0A, 0xC4, 0x5F, 0xD8, 0x8C};  // MAC Adress of crutch Nr. 1
@@ -35,7 +39,7 @@ uint8_t broadcastAddress[] = {0x24, 0x0A, 0xC4, 0x5F, 0xD8, 0x8C};  // MAC Adres
 BluetoothSerial btSerial;		           // Bluetooth
 NAU7802 myScale; //Create instance of the NAU7802 class
 
-void datareceived();
+//void datareceived();
 void displaydata();
 void setupScale(void);
 bool updateAvgWeight();
@@ -43,6 +47,9 @@ void smartdelay();
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len);
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
+template <class T> int EEPROM_writeAnything(int ee, const T& value);
+template <class T> int EEPROM_readAnything(int ee, T& value);
+void BluetoothCommandHandler();
 
 void setup() {
   Serial.begin(115200);
@@ -126,92 +133,58 @@ void loop() {
         digitalWrite(BEEPER_PIN, HIGH);
     }
 
-    if (btSerial.available()) datareceived();
-
+    //if (btSerial.available()) datareceived();
+    BluetoothCommandHandler();
     //delay(50);
-    smartdelay();
+    //smartdelay();
 }
 
-void datareceived()
+void BluetoothCommandHandler()  // This is a task.
 {
-    input = btSerial.readString();
-    switch (state)
+    static bool write_eeprom = false;
+    while (btSerial.available())
     {
-    case 0:
-        if (input == String("help")) {						// help
-            btSerial.print("\n\nhelp - list commands\n");
-            btSerial.print("wfactor - set lin scale factor\n");
-            btSerial.print("woffset - set lin scale offset\n");
-            btSerial.print("maxweight - set beeper threshold\n");
-            btSerial.print("data - display data\n");
-            btSerial.print("spam - stream weight\n");
-        }
-        if (input == String("data")) displaydata();
-
-        if (input == String("wfactor"))
-        {
-            btSerial.print("\nSet wfactor: ");
-            state = 1;
-        }
-        if (input == String("woffset"))
-        {
-            btSerial.print("\nSet woffset: ");
-            state = 2;
-        }
-        if (input == String("maxweight"))
-        {
-            btSerial.print("\nSet maxweight [g]: ");
-            state = 3;
-        }
-        if (input == String("spam"))
+        String raw_cmd = btSerial.readStringUntil('\n');
+        StaticJsonDocument<150> receivedMsg;
+        deserializeJson(receivedMsg, raw_cmd.c_str());
+        String cmd = receivedMsg["cmd"];
+        if (cmd.equals("spam"))
         {
             spam = !spam;
         }
-        break;
-    case 1:     // setWeightFactor
-        myScale.setCalibrationFactor(input.toFloat());
-        EEPROM.put(LOCATION_CALIBRATION_FACTOR, input.toFloat());
-        EEPROM.commit();
-        state = 0;
-        displaydata();
-        break;
-    case 2:     // setWeightOffset
-        myScale.setZeroOffset(long(input.toFloat()));
-        EEPROM.put(LOCATION_ZERO_OFFSET, long(input.toFloat()));
-        EEPROM.commit();
-        state = 0;
-        displaydata();
-        break;
-    case 3:     // set maxweight
-        maxweight = input.toFloat();
-        EEPROM.put(LOCATION_MAXWEIGHT, input.toFloat());
-        EEPROM.commit();
-        state = 0;
-        displaydata();
-        break;
-    }
-}
+        else if (cmd.equals("set_calib"))
+        {
+            // "{ "cmd" : "set_calib", "row": 12, "real_weight": 70000, "reading_val" : 112000 }""
+            uint8_t row = receivedMsg["row"];
+            long new_real_weight = receivedMsg["real_weight"];
+            long new_raw_value = receivedMsg["reading_val"];
+            if (new_real_weight != real_weight[row]){
+                real_weight[row] = new_real_weight;
+                EEPROM_writeAnything(LOCATION_REAL_WEIGHT, real_weight);
+                write_eeprom = true;
+            }
+            if (new_raw_value != raw_value[row])
+            {
+                raw_value[row] = new_raw_value;
+                EEPROM_writeAnything(LOCATION_READING_VAL, raw_value);
+                write_eeprom = true;
+            }
+        }
+        else
+        {
 
-void displaydata()
-{
-    btSerial.print("\n\nRaw Weight: ");
-    btSerial.print(myScale.getReading());
-    btSerial.print("\n\nWeight: ");
-    btSerial.print(weight);
-    btSerial.print("\nWeight Factor: ");
-    btSerial.print(myScale.getCalibrationFactor());
-    btSerial.print("\nWeight Offset: ");
-    btSerial.print(myScale.getZeroOffset());
-    btSerial.print("\nMaxweight: ");
-    btSerial.print(maxweight);
+        }
+    }
+    if (write_eeprom)
+    {
+        EEPROM.commit();
+        write_eeprom = false;
+    }
 }
 
 //Reads the current system settings from EEPROM
 void setupScale(void)
 {
-    long weightOffset = 0;
-    float weightFactor = 0.0;
-
     Wire.begin();
 
     if (myScale.begin() == false)
@@ -220,38 +193,55 @@ void setupScale(void)
         while (1);
     }
     Serial.println("Scale detected!");
-
-    myScale.setGain(NAU7802_GAIN_8);    // Gain before A/D Converter
-
-    //read from Flash
-    EEPROM.get(LOCATION_CALIBRATION_FACTOR, weightFactor);  //Value used to convert the load cell reading to lbs or kg
-    EEPROM.get(LOCATION_ZERO_OFFSET, weightOffset);         //Zero value that is found when scale is tared
-
-    //Pass these values to the library
-    myScale.setCalibrationFactor(weightFactor);
-    myScale.setZeroOffset(weightOffset);
+    
+    // Gain before A/D Converter
+    myScale.setGain(NAU7802_GAIN_8);    
 
     //load maxweight
     EEPROM.get(LOCATION_MAXWEIGHT, maxweight);
+
+    //load patientweight
+    //EEPROM.get(LOCATION_PATIENTWEIGHT, patientweight);
+
+    //load real weight from calibration table
+    EEPROM_readAnything(LOCATION_REAL_WEIGHT, real_weight);
+    
+    //load real value from calibration table
+    EEPROM_readAnything(LOCATION_READING_VAL, raw_value);
 }
 
 bool updateAvgWeight()      // update moving Average and store value in weight
 {
-    // if (myScale.available() == true)
+    long raw_reading = myScale.getReading();
+    uint8_t lower_pos = 0;
+    uint8_t upper_pos = 0;
+    for (byte i = 0; i < 14; i++)
     {
-        if (fCount >= (FILTER_SIZE)) fCount = 0;
-        weightSum = weightSum - weightFilter[fCount];
-        weightFilter[fCount] = myScale.getWeight();
-        weightSum = weightSum + weightFilter[fCount];
-        weight = weightSum / (FILTER_SIZE);
-        fCount++;
-        return true;
+        if ((raw_reading > raw_value[i]) && (raw_reading < raw_value[i + 1]))
+        {
+            lower_pos = i;
+            upper_pos = i + 1;
+            break;
+        }
     }
-    /*else
-    {
-        Serial.print("\nError reading Scale");
-        return false;
-    }*/
+    long calib_weight = map(raw_reading, raw_value[lower_pos], raw_value[upper_pos], real_weight[lower_pos], real_weight[upper_pos]);
+    
+    if (calib_weight <= 2000) calib_weight = 0;
+    if (fCount >= (FILTER_SIZE)) fCount = 0;
+    
+    weightSum -= weightFilter[fCount];
+    weightFilter[fCount] = calib_weight;        
+    weightSum = weightSum + weightFilter[fCount];
+    weight = weightSum / (FILTER_SIZE);
+    fCount++;
+    /*Serial.print("raw: ");
+    Serial.print(raw_reading);
+    Serial.print(" weight: ");
+    Serial.print(weight);
+    Serial.print(" weight: ");
+    Serial.print(weight/1000);
+    Serial.println(" KG");*/
+    return true;
 }
 
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
@@ -275,4 +265,26 @@ void smartdelay()
 	if (delaytime > (1000 / LOOP_FREQUENCY)) delaytime = (1000 / LOOP_FREQUENCY);
 	delay(delaytime);
 	lastloop = millis();
+}
+
+template <class T> int EEPROM_writeAnything(int ee, const T& value)
+{
+    const byte* p = (const byte*)(const void*)&value;
+    unsigned int i;
+    for (i = 0; i < sizeof(value); i++){
+        EEPROM.write(ee++, *p++);
+    }
+    return i;
+}
+
+
+template <class T> int EEPROM_readAnything(int ee, T& value)
+{
+    byte* p = (byte*)(void*)&value;
+    unsigned int i;
+    for (i = 0; i < sizeof(value); i++)
+    {
+        *p++ = EEPROM.read(ee++);
+    }
+    return i;
 }

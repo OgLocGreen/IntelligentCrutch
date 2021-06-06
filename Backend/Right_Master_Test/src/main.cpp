@@ -7,7 +7,7 @@
 #include <esp_now.h>
 #include <ArduinoJson.h>
 
-#define EEPROM_SIZE 256
+#define EEPROM_SIZE 512
 #define FILTER_SIZE 100       // 1: filter is off >1: length of filter array
 #define LOCATION_MAXWEIGHT 0
 #define LOCATION_PATIENTWEIGHT 10
@@ -17,7 +17,7 @@
 #define LED_PIN 2
 #define BEEPER_PIN 16
 #define LOOP_FREQUENCY 20   // in Hz
-#define TIME_SEND_MEASUREMENT 50
+#define TIME_SEND_MEASUREMENT 100
 
 String input;
 int state = 0;
@@ -456,13 +456,13 @@ void sendMeasurementDataOverBluetooth()
     if (millis() - last >= TIME_SEND_MEASUREMENT)
     {
         StaticJsonDocument<100> measurement;
-        measurement["time"] = millis(); // TODO? what time should be sent?
-        measurement["c_right"] = weight;
-        measurement["c_left"] = weightSlave;
-        measurement["footload"] = footload;
+        //measurement["time"] = millis(); // TODO? what time should be sent?
+        measurement["c_r"] = weight;
+        measurement["c_l"] = weightSlave;
+        measurement["fld"] = footload;
         char buffer[100];
 	    size_t n = serializeJson(measurement, buffer);
-        btSerial.print(buffer);
+        btSerial.println(buffer);
         last = millis();
     }
 }
@@ -475,8 +475,8 @@ void sendAnaliticalDataOverBluetooth()
     {
         StaticJsonDocument<100> measurement;
         measurement["steps"] = numb_steps;
-        measurement["nr_overload"] = numb_overload;
-        measurement["strengt_overloard"] = overload;
+        measurement["nr_ov"] = numb_overload;
+        measurement["st_ov"] = overload;
         char buffer[100];
 	    size_t n = serializeJson(measurement, buffer);
         btSerial.print(buffer);
