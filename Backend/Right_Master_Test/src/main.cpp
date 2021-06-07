@@ -19,15 +19,13 @@
 #define LOOP_FREQUENCY 20   // in Hz
 #define TIME_SEND_MEASUREMENT 100
 
-String input;
-int state = 0;
 unsigned long lastloop = 0;
 unsigned long lastmsg = 0;
 
-int weight = 0;         // in grams
-int totalweight = 0;    // in grams
+long weight = 0;         // in grams
+long totalweight = 0;    // in grams
 int footload = 0;
-int maxfootload = 0; 
+long maxfootload = 0; 
 int new_body_weight = 0;
 long weightFilter[FILTER_SIZE] = { 0 };
 int fCount = 0;
@@ -35,8 +33,8 @@ float weightSum = 0.0;  // used for moving average filter
 bool spam = true;
 bool send_analitic_data = false;
 bool measuring_weight = false;
-float maxweight = 0;
-float patientweight = 0;
+long maxweight = 0;
+long patientweight = 0;
 long real_weight[15];
 long raw_value[15];
 bool receiveflag = false;
@@ -75,7 +73,6 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len);
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 
 void sendMeasurementDataOverBluetooth();
-void sendAnaliticalDataOverBluetooth();
 template <class T> int EEPROM_writeAnything(int ee, const T& value);
 template <class T> int EEPROM_readAnything(int ee, T& value);
 void getRealWeight();
@@ -83,56 +80,55 @@ void BluetoothCommandHandler();
 void calculateMeasurement();
 
 void setup() {
-  Serial.begin(115200);
-  Serial.println("iUAGS Qwiic Scale Test");
+    Serial.begin(115200);
+    Serial.println("iUAGS Qwiic Scale Test");
 
-  // Set device as a Wi-Fi Station
-  WiFi.mode(WIFI_STA);
+    // Set device as a Wi-Fi Station
+    WiFi.mode(WIFI_STA);
 
-  // Init ESP-NOW
-  if (esp_now_init() != ESP_OK) {
-    Serial.println("Error initializing ESP-NOW");
-    return;
-  }
+    // Init ESP-NOW
+    if (esp_now_init() != ESP_OK) {
+        Serial.println("Error initializing ESP-NOW");
+        return;
+    }
 
-  // Once ESPNow is successfully Init, we will register for Send CB to
-  // get the status of Trasnmitted packet
-  esp_now_register_send_cb(OnDataSent);
+    // Once ESPNow is successfully Init, we will register for Send CB to
+    // get the status of Trasnmitted packet
+    esp_now_register_send_cb(OnDataSent);
 
-  // Register peer
-  esp_now_peer_info_t peerInfo;
-  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  peerInfo.channel = 0;  
-  peerInfo.encrypt = false;
-  
-  // Add peer        
-  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-    Serial.println("Failed to add peer");
-    return;
-  }
-  // Register for a callback function that will be called when data is received
-  esp_now_register_recv_cb(OnDataRecv);
+    // Register peer
+    esp_now_peer_info_t peerInfo;
+    memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+    peerInfo.channel = 0;  
+    peerInfo.encrypt = false;
+    
+    // Add peer        
+    if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+        Serial.println("Failed to add peer");
+        return;
+    }
+    // Register for a callback function that will be called when data is received
+    esp_now_register_recv_cb(OnDataRecv);
 
 
-  EEPROM.begin(EEPROM_SIZE);
+    EEPROM.begin(EEPROM_SIZE);
 
-  setupScale();    // Load zeroOffset and calibrationFactor from EEPROM
+    setupScale();    // Load zeroOffset and calibrationFactor from EEPROM
 
-  pinMode(BEEPER_PIN, OUTPUT);
-  digitalWrite(BEEPER_PIN, HIGH);     // high = beeper off
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, HIGH);
-  delay(200);
-  digitalWrite(LED_PIN, LOW);
-  btSerial.begin("iUAGS");
-  lastloop = millis();
-  // xTaskCreatePinnedToCore(BluetoothCommandHandler, "AnalogReadA3", 1024, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
+    pinMode(BEEPER_PIN, OUTPUT);
+    digitalWrite(BEEPER_PIN, HIGH);     // high = beeper off
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN, HIGH);
+    delay(200);
+    digitalWrite(LED_PIN, LOW);
+    btSerial.begin("iUAGS");
+    lastloop = millis();
 }
 
 
 void loop() {
     updateAvgWeight();
-
+    calculateMeasurement();
     // signal overload
     if (footload > maxweight)
     {
@@ -144,9 +140,8 @@ void loop() {
         digitalWrite(LED_PIN, LOW);
         digitalWrite(BEEPER_PIN, HIGH);
     }
-    stepCounting();
+    checkstep_overload();
     old_totalweight = totalweight;
-    calculateMeasurement();
     BluetoothCommandHandler();
 }
 
@@ -188,8 +183,8 @@ void BluetoothCommandHandler()  // This is a task.
         else if (cmd.equals("set_pat_weight"))
         {
             // "{ "cmd" : "set_pat_weight", "value" : 100 }""
-            uint8_t wg = receivedMsg["value"];
-            if (patientweight != wg)
+            float wg = receivedMsg["value"];
+            if (patientweight != wg*1000)
             {
                 patientweight = wg;
                 EEPROM_writeAnything(LOCATION_PATIENTWEIGHT, patientweight);
@@ -199,8 +194,8 @@ void BluetoothCommandHandler()  // This is a task.
         else if (cmd.equals("set_max_weight"))
         {
             // "{ "cmd" : "set_max_weight", "value" : 100 }""
-            uint8_t mg = receivedMsg["value"];
-            if (maxweight != mg)
+            float mg = receivedMsg["value"];
+            if (maxweight != mg*1000)
             {
                 maxweight = mg;
                 EEPROM_writeAnything(LOCATION_MAXWEIGHT, maxweight);
@@ -249,9 +244,11 @@ void setupScale(void)
 
     //load maxweight
     EEPROM.get(LOCATION_MAXWEIGHT, maxweight);
+    maxweight *= 1000; // work in grams
 
     //load patientweight
     EEPROM.get(LOCATION_PATIENTWEIGHT, patientweight);
+    patientweight *= 1000; // work in grams
 
     //load real weight from calibration table
     EEPROM_readAnything(LOCATION_REAL_WEIGHT, real_weight);
@@ -296,7 +293,6 @@ bool updateAvgWeight()      // update moving Average and store value in weight
 
 void calculateMeasurement()
 {
-    
     if(receiveflag)
     {
         receiveflag = false;
@@ -311,7 +307,6 @@ void calculateMeasurement()
         }
         esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &footload, sizeof(footload));
         if (spam) sendMeasurementDataOverBluetooth();
-        if (send_analitic_data) sendAnaliticalDataOverBluetooth();
     }
 }
 
@@ -416,37 +411,23 @@ void checkstep_overload()
 }
 
 
-
 void sendMeasurementDataOverBluetooth()
 {
     static int last = millis();
     if (millis() - last >= TIME_SEND_MEASUREMENT)
     {
-        StaticJsonDocument<100> measurement;
+        StaticJsonDocument<150> measurement;
         //measurement["time"] = millis(); // TODO? what time should be sent?
         measurement["c_r"] = weight;
         measurement["c_l"] = weightSlave;
-        measurement["fld"] = footload;
-        char buffer[100];
-	    size_t n = serializeJson(measurement, buffer);
-        btSerial.println(buffer);
-        last = millis();
-    }
-}
-
-
-void sendAnaliticalDataOverBluetooth()
-{
-    static int last = millis();
-    if (millis() - last >= TIME_SEND_MEASUREMENT)
-    {
-        StaticJsonDocument<100> measurement;
+        measurement["tot"] = totalweight;
+        measurement["ftl"] = footload;
         measurement["steps"] = numb_steps;
         measurement["nr_ov"] = numb_overload;
         measurement["st_ov"] = maxfootload;
-        char buffer[100];
+        char buffer[150];
 	    size_t n = serializeJson(measurement, buffer);
-        btSerial.print(buffer);
+        Serial.println(buffer);
         last = millis();
     }
 }
