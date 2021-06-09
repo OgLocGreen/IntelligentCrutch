@@ -16,12 +16,13 @@
 #define LOCATION_READING_VAL 140
 #define LED_PIN 2
 #define BEEPER_PIN 16
-#define LOOP_FREQUENCY 20   // in Hz
+#define LOOP_FREQUENCY 50   // in Hz
 
 String input;
+int delaytime = 0;
 int state = 0;
 unsigned long lastloop = 0;
-
+long raw_reading;
 int weight = 0.0;
 long weightFilter[FILTER_SIZE] = { 0 };
 int fCount = 0;
@@ -100,27 +101,19 @@ void setup() {
 }
 
 void loop() {
-    //Serial.print("Raw reading: ");
-    //Serial.println(myScale.getReading());
-
     updateAvgWeight();
-    //Serial.print("   Filtered Weight: ");
-    //Serial.println(weight);
+    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &weight, sizeof(weight));
 
     if (spam) {
-        btSerial.print("\n\nWeight: ");
-        btSerial.print(weight);
+        StaticJsonDocument<150> measurement;
+        measurement["dt"] = delaytime;
+        measurement["raw_reading"] = raw_reading;
+        measurement["crutch_l"] = weight;
+        measurement["sending"] = (result == ESP_OK);
+        char buffer[150];
+        size_t n = serializeJson(measurement, buffer);
+        btSerial.println(buffer);
     }
-
-    // Send message via ESP-NOW
-    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &weight, sizeof(weight));
-    if (result == ESP_OK) {
-      //Serial.println("Sent with success");
-    }
-    else {
-      Serial.println("Error sending the data");
-    }
-
     // signal overload
     if (footload > maxweight)
     {
@@ -135,8 +128,8 @@ void loop() {
 
     //if (btSerial.available()) datareceived();
     BluetoothCommandHandler();
-    //delay(50);
-    //smartdelay();
+    //delay(10);
+    smartdelay();
 }
 
 void BluetoothCommandHandler()  // This is a task.
@@ -170,6 +163,22 @@ void BluetoothCommandHandler()  // This is a task.
                 write_eeprom = true;
             }
         }
+        else if (cmd.equals("get_calib"))
+        {
+            long real, raw;
+            //load real weight from calibration table
+            EEPROM_readAnything(LOCATION_REAL_WEIGHT, real);
+            //load real value from calibration table
+            EEPROM_readAnything(LOCATION_READING_VAL, raw);
+            for (size_t i = 0; i < 15; i++)
+            {
+                btSerial.print(i);
+                btSerial.print(" | ");
+                btSerial.print(real);
+                btSerial.print(" | ");
+                btSerial.println(raw);   
+            }
+        }
         else
         {
 
@@ -194,25 +203,28 @@ void setupScale(void)
     }
     Serial.println("Scale detected!");
     
-    // Gain before A/D Converter
     myScale.setGain(NAU7802_GAIN_8);    
-
-    //load maxweight
     EEPROM.get(LOCATION_MAXWEIGHT, maxweight);
-
-    //load patientweight
-    //EEPROM.get(LOCATION_PATIENTWEIGHT, patientweight);
-
-    //load real weight from calibration table
     EEPROM_readAnything(LOCATION_REAL_WEIGHT, real_weight);
-    
-    //load real value from calibration table
     EEPROM_readAnything(LOCATION_READING_VAL, raw_value);
 }
 
 bool updateAvgWeight()      // update moving Average and store value in weight
 {
-    long raw_reading = myScale.getReading();
+    static int raw_count = 0;
+    static long raw_filter[200] = {0};
+    static long raw_sum = 0;
+    static long raw_not_filterd;
+
+    raw_not_filterd = myScale.getReading();
+    if (raw_count >= 200) { raw_count = 0; }
+    raw_not_filterd = myScale.getReading();
+    raw_sum -= raw_filter[raw_count];
+    raw_filter[raw_count] = raw_not_filterd;
+    raw_sum += raw_filter[raw_count];
+    raw_reading = raw_sum/200;
+    raw_count++;
+    
     uint8_t lower_pos = 0;
     uint8_t upper_pos = 0;
     for (byte i = 0; i < 14; i++)
@@ -234,19 +246,12 @@ bool updateAvgWeight()      // update moving Average and store value in weight
     weightSum = weightSum + weightFilter[fCount];
     weight = weightSum / (FILTER_SIZE);
     fCount++;
-    /*Serial.print("raw: ");
-    Serial.print(raw_reading);
-    Serial.print(" weight: ");
-    Serial.print(weight);
-    Serial.print(" weight: ");
-    Serial.print(weight/1000);
-    Serial.println(" KG");*/
     return true;
 }
 
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  Serial.print("\r\nLast Packet Send Status:\t");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+//   Serial.print("Last Packet Send Status:\t");
+//   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
 
 // Callback when data is received
@@ -259,8 +264,8 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
 
 void smartdelay()
 {
-	int delaytime = 0;
-	delaytime = 1000 / LOOP_FREQUENCY - (millis() - LOOP_FREQUENCY);
+	delaytime = 0;
+	delaytime = 1000 / LOOP_FREQUENCY - (millis() - lastloop);
 	if (delaytime < 0) delaytime = 0;
 	if (delaytime > (1000 / LOOP_FREQUENCY)) delaytime = (1000 / LOOP_FREQUENCY);
 	delay(delaytime);
