@@ -17,7 +17,7 @@
 #define LED_PIN 2
 #define BEEPER_PIN 16
 #define LOOP_FREQUENCY 20   // in Hz
-#define TIME_SEND_MEASUREMENT 100
+#define TIME_SEND_MEASUREMENT 100 // in milliseconds
 
 unsigned long lastloop = 0;
 unsigned long lastmsg = 0;
@@ -164,7 +164,7 @@ void BluetoothCommandHandler()  // This is a task.
         }
         else if (cmd.equals("set_calib"))
         {
-            // "{ "cmd" : "set_calib", "row": 12, "real_weight": 70000, "reading_val" : 112000 }""
+            // "{ "cmd" : "set_calib", "row": 12, "real_weight": 70000, "reading_val" : 112000 }"
             uint8_t row = receivedMsg["row"];
             long new_real_weight = receivedMsg["real_weight"];
             long new_raw_value = receivedMsg["reading_val"];
@@ -179,6 +179,24 @@ void BluetoothCommandHandler()  // This is a task.
                 EEPROM_writeAnything(LOCATION_READING_VAL, raw_value);
                 write_eeprom = true;
             }
+        }
+        else if (cmd.equals("get_calib"))
+        {
+            StaticJsonDocument<512> doc;
+            JsonArray real_weight_js = doc.createNestedArray("real_weight");
+            JsonArray raw_value_js = doc.createNestedArray("raw_value");
+            //load real weight from calibration table
+            EEPROM_readAnything(LOCATION_REAL_WEIGHT, real);
+            //load real value from calibration table
+            EEPROM_readAnything(LOCATION_READING_VAL, raw);
+            for (size_t i = 0; i < 15; i++)
+            {
+                real_weight_js.add();
+                raw_value_js.add();
+            }
+            char buffer[512];
+            serializeJson(doc, buffer);
+            btSerial.println(buffer);
         }
         else if (cmd.equals("set_pat_weight"))
         {
@@ -418,16 +436,16 @@ void sendMeasurementDataOverBluetooth()
     {
         StaticJsonDocument<150> measurement;
         //measurement["time"] = millis(); // TODO? what time should be sent?
-        measurement["c_r"] = weight;
-        measurement["c_l"] = weightSlave;
-        measurement["tot"] = totalweight;
-        measurement["ftl"] = footload;
+        measurement["crutch_r"] = weight;
+        measurement["crutch_l"] = weightSlave;
+        measurement["total"] = totalweight;
+        measurement["footload"] = footload;
         measurement["steps"] = numb_steps;
-        measurement["nr_ov"] = numb_overload;
-        measurement["st_ov"] = maxfootload;
+        measurement["number_ov"] = numb_overload;
+        measurement["strengt_ov"] = maxfootload;
         char buffer[150];
 	    size_t n = serializeJson(measurement, buffer);
-        Serial.println(buffer);
+        btSerial.println(buffer);
         last = millis();
     }
 }
