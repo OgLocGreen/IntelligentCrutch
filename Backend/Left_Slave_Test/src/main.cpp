@@ -216,14 +216,13 @@ bool updateAvgWeight()      // update moving Average and store value in weight
     static long raw_sum = 0;
     static long raw_not_filterd;
 
-    raw_not_filterd = myScale.getReading();
-    if (raw_count >= 200) { raw_count = 0; }
+    /*if (raw_count >= 200) { raw_count = 0; }
     raw_not_filterd = myScale.getReading();
     raw_sum -= raw_filter[raw_count];
     raw_filter[raw_count] = raw_not_filterd;
-    raw_sum += raw_filter[raw_count];
-    raw_reading = raw_sum/200;
-    raw_count++;
+    raw_sum += raw_filter[raw_count];*/
+    raw_reading = myScale.getReading(); // raw_sum/200;
+    //raw_count++;
     
     uint8_t lower_pos = 0;
     uint8_t upper_pos = 0;
@@ -243,7 +242,7 @@ bool updateAvgWeight()      // update moving Average and store value in weight
     
     weightSum -= weightFilter[fCount];
     weightFilter[fCount] = calib_weight;        
-    weightSum = weightSum + weightFilter[fCount];
+    weightSum += weightFilter[fCount];
     weight = weightSum / (FILTER_SIZE);
     fCount++;
     return true;

@@ -39,11 +39,11 @@ long real_weight[15];
 long raw_value[15];
 bool receiveflag = false;
 
-float old_totalweight = 0;
-float numb_steps = 0;
-float numb_overload =0;
-float maxtotalweight = 0;
-int low_threshold = 5;
+
+long numb_steps = 0;
+long numb_overload =0;
+long maxtotalweight = 0;
+long low_threshold = 15000;
 bool up = false;
 bool down = false;
 
@@ -141,7 +141,6 @@ void loop() {
         digitalWrite(BEEPER_PIN, HIGH);
     }
     checkstep_overload();
-    old_totalweight = totalweight;
     BluetoothCommandHandler();
 }
 
@@ -182,21 +181,21 @@ void BluetoothCommandHandler()  // This is a task.
         }
         else if (cmd.equals("get_calib"))
         {
-            StaticJsonDocument<512> doc;
-            JsonArray real_weight_js = doc.createNestedArray("real_weight");
-            JsonArray raw_value_js = doc.createNestedArray("raw_value");
-            //load real weight from calibration table
-            EEPROM_readAnything(LOCATION_REAL_WEIGHT, real);
-            //load real value from calibration table
-            EEPROM_readAnything(LOCATION_READING_VAL, raw);
-            for (size_t i = 0; i < 15; i++)
-            {
-                real_weight_js.add();
-                raw_value_js.add();
-            }
-            char buffer[512];
-            serializeJson(doc, buffer);
-            btSerial.println(buffer);
+            // StaticJsonDocument<512> doc;
+            // JsonArray real_weight_js = doc.createNestedArray("real_weight");
+            // JsonArray raw_value_js = doc.createNestedArray("raw_value");
+            // //load real weight from calibration table
+            // EEPROM_readAnything(LOCATION_REAL_WEIGHT, real);
+            // //load real value from calibration table
+            // EEPROM_readAnything(LOCATION_READING_VAL, raw);
+            // for (size_t i = 0; i < 15; i++)
+            // {
+            //     real_weight_js.add();
+            //     raw_value_js.add();
+            // }
+            // char buffer[512];
+            // serializeJson(doc, buffer);
+            // btSerial.println(buffer);
         }
         else if (cmd.equals("set_pat_weight"))
         {
@@ -234,15 +233,6 @@ void BluetoothCommandHandler()  // This is a task.
         EEPROM.commit();
         write_eeprom = false;
     }
-}
-
-
-void displaydata()
-{
-    btSerial.print("\nMaxweight: ");
-    btSerial.print(maxweight);
-    btSerial.print("\nPatientweight: ");
-    btSerial.print(patientweight);
 }
 
 //Reads the current system settings from EEPROM
@@ -311,8 +301,8 @@ bool updateAvgWeight()      // update moving Average and store value in weight
 
 void calculateMeasurement()
 {
-    if(receiveflag)
-    {
+//    if(receiveflag)
+//    {
         receiveflag = false;
         lastmsg = millis();
         totalweight = weight + weightSlave;
@@ -325,7 +315,7 @@ void calculateMeasurement()
         }
         esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &footload, sizeof(footload));
         if (spam) sendMeasurementDataOverBluetooth();
-    }
+//}
 }
 
 void measureBodyWeight()
@@ -414,16 +404,28 @@ void checkstep_overload()
         maxtotalweight = totalweight; // Hier eigenentlich noch patientweight - totalweight 
     }
 
-    if(!step && totalweight > low_threshold)   //Schritt beginn
+    if(!step && (totalweight > low_threshold))   //Schritt beginn
     {
         numb_steps++;
         step = true;
+        maxfootload = 0;
     }
 
-    if(step && totalweight < low_threshold)    // Schritt ende
+    if(step && (totalweight < low_threshold))    // Schritt ende
     {
         step = false;
-        maxfootload = patientweight - maxtotalweight;
+
+
+        if (maxfootload < 69000 - maxtotalweight )
+        {
+            maxfootload = 69000 - maxtotalweight;
+        }
+
+        if (maxtotalweight > 50000)
+        {
+            numb_overload++;
+        }
+
         maxtotalweight = 0;
     }
 }
@@ -436,13 +438,14 @@ void sendMeasurementDataOverBluetooth()
     {
         StaticJsonDocument<150> measurement;
         //measurement["time"] = millis(); // TODO? what time should be sent?
-        measurement["crutch_r"] = weight;
-        measurement["crutch_l"] = weightSlave;
+        //measurement["crutch_r"] = weight;
+        //measurement["crutch_l"] = weightSlave;
+        measurement["maxtotalweight"] = maxtotalweight;
         measurement["total"] = totalweight;
-        measurement["footload"] = footload;
+        //measurement["footload"] = footload;
         measurement["steps"] = numb_steps;
         measurement["number_ov"] = numb_overload;
-        measurement["strengt_ov"] = maxfootload;
+        measurement["maxfootload"] = maxfootload;
         char buffer[150];
 	    size_t n = serializeJson(measurement, buffer);
         btSerial.println(buffer);
