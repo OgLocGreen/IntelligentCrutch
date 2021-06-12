@@ -159,7 +159,7 @@ void BluetoothCommandHandler()
             // "{ "cmd" : "set_calib", "row": 12, "real_weight": 70000, "reading_val" : 112000 }"
             uint8_t row = receivedMsg["row"];
             long new_real_weight = receivedMsg["real_weight"];
-            long new_raw_value = receivedMsg["reading_val"];
+            long new_raw_value = receivedMsg["raw_value"];
             if (new_real_weight != real_weight[row]){
                 real_weight[row] = new_real_weight;
                 EEPROM_writeAnything(LOCATION_REAL_WEIGHT, real_weight);
@@ -222,7 +222,7 @@ void BluetoothCommandHandler()
         {
             StaticJsonDocument<20> doc;
             EEPROM_readAnything(LOCATION_MAXWEIGHT, maxweight);
-            doc["max_weight"] = (float)patientweight/1000.00;
+            doc["max_weight"] = (float)maxweight/1000.00;
             char buffer[20];
             serializeJson(doc, buffer);
             btSerial.println(buffer);
