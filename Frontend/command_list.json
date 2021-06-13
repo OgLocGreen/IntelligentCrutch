@@ -3,13 +3,15 @@
     {"cmd" : "spam"},
     "data format being spammed":
     {
-        "crutch_r": 2300000,
-        "crutch_l": 2300000,
-        "total": 4600000,
-        "steps": 25,
-        "footload": 4600000,
-        "overload_nr": 23,
-        "overload_str": 4600000
+        "time":17180,
+        "crutch_r":0,
+        "crutch_l":0,
+        "total":0,
+        "maxtotalweight":0,
+        "footload":0,
+        "maxfootload":0,
+        "steps":0,
+        "number_ov":0
     },
     "to set calibration table":
     { 
@@ -35,8 +37,8 @@
         "cmd" : "set_max_weight", 
         "value" : 20.00
     },
-    "to measure patient weight (if possible)":
-    {
-        "cmd" : "measure_weight"
-    }
+    "to get patient weight":
+    { "cmd": "get_pat_weight" },
+    "to get max weight":
+    { "cmd": "get_max_weight" }
 }
