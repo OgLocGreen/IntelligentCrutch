@@ -419,12 +419,12 @@ void sendMeasurementDataOverBluetooth()
     {
         StaticJsonDocument<150> measurement;
         measurement["time"] = millis(); // TODO? what time should be sent?
-        measurement["crutch_r"] = weight;
-        measurement["crutch_l"] = weightSlave;
-        measurement["total"] = totalweight;
-        measurement["maxtotalweight"] = maxtotalweight;
-        measurement["footload"] = footload;
-        measurement["maxfootload"] = maxfootload;
+        measurement["crutch_r"] = (float)weight/1000.00;
+        measurement["crutch_l"] = (float)weightSlave/1000.00;
+        measurement["total"] = (float)totalweight/1000.00;
+        measurement["maxtotalweight"] = (float)maxtotalweight/1000.00;
+        measurement["footload"] = (float)footload/1000.00;
+        measurement["maxfootload"] = (float)maxfootload/1000.00;
         measurement["steps"] = numb_steps;
         measurement["number_ov"] = numb_overload;
         
