@@ -227,6 +227,13 @@ void BluetoothCommandHandler()
             serializeJson(doc, buffer);
             btSerial.println(buffer);
         }
+        else if (cmd.equals("reset"))
+        {
+            maxtotalweight = 0;
+            maxfootload = 0;
+            numb_steps = 0;
+            numb_overload = 0;
+        }
         else
         {
             btSerial.println("command not recognised");
@@ -417,7 +424,7 @@ void sendMeasurementDataOverBluetooth()
     static int last = millis();
     if (millis() - last >= TIME_SEND_MEASUREMENT)
     {
-        StaticJsonDocument<150> measurement;
+        StaticJsonDocument<200> measurement;
         measurement["time"] = millis(); // TODO? what time should be sent?
         measurement["crutch_r"] = (float)weight/1000.00;
         measurement["crutch_l"] = (float)weightSlave/1000.00;
@@ -428,7 +435,7 @@ void sendMeasurementDataOverBluetooth()
         measurement["steps"] = numb_steps;
         measurement["number_ov"] = numb_overload;
         
-        char buffer[150];
+        char buffer[200];
         serializeJson(measurement, buffer);
         btSerial.println(buffer);
         last = millis();
