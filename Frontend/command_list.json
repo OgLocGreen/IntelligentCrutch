@@ -3,15 +3,15 @@
     {"cmd" : "spam"},
     "data format being spammed":
     {
-        "time":17180,
-        "crutch_r":0,
-        "crutch_l":0,
-        "total":0,
-        "maxtotalweight":0,
-        "footload":0,
-        "maxfootload":0,
-        "steps":0,
-        "number_ov":0
+        "t":17180,
+        "cr":0,
+        "cl":0,
+        "to":0,
+        "mtw":0,
+        "ft":0,
+        "mft":0,
+        "st":0,
+        "nov":0
     },
     "to set calibration table":
     { 
