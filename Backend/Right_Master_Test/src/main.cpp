@@ -40,7 +40,7 @@ bool receiveflag = false;
 long numb_steps = 0;
 long numb_overload =0;
 long maxtotalweight = 0;
-long low_threshold = 15000;
+long low_threshold = 8000;
 bool up = false;
 bool down = false;
 
@@ -128,7 +128,6 @@ void loop() {
     calculateMeasurement();
     // if (footload > maxweight)
     // {
-    //     digitalWrite(LED_PIN, HIGH);
     //     digitalWrite(BEEPER_PIN, LOW);
     // }
     // else
@@ -399,6 +398,8 @@ void checkstep_overload()
         numb_steps++;
         step = true;
         maxfootload = 0;
+        digitalWrite(LED_PIN, LOW);
+        
     }
 
     if(step && (totalweight < low_threshold))    // Schritt ende
@@ -406,7 +407,10 @@ void checkstep_overload()
         step = false;
         if (maxfootload < (patientweight - maxtotalweight))
         {
+            digitalWrite(LED_PIN, HIGH);
+            
             maxfootload = patientweight - maxtotalweight;
+
         }
 
         if (maxtotalweight > maxweight)
