@@ -35,7 +35,7 @@ long patientweight = 0;
 long real_weight[15];
 long raw_value[15];
 bool receiveflag = false;
-
+unsigned long start;
 
 long numb_steps = 0;
 long numb_overload =0;
@@ -128,6 +128,11 @@ void loop() {
     calculateMeasurement();
     checkstep_overload();
     BluetoothCommandHandler();
+    if(millis() - start >= 800)
+    {
+        digitalWrite(BEEPER_PIN, HIGH);
+        digitalWrite(LED_PIN, LOW);
+    }
 }
 
 
@@ -397,9 +402,10 @@ void checkstep_overload()
         step = false;
         if (maxfootload < (patientweight - maxtotalweight))
         {
+            int start_beeb = 5555;
             digitalWrite(LED_PIN, HIGH);
-            esp_now_send(broadcastAddress, (uint8_t *) &footload, sizeof(footload));
-
+            esp_now_send(broadcastAddress, (uint8_t *) &start_beeb, sizeof(start_beeb));
+            start = millis();
             
             maxfootload = patientweight - maxtotalweight;
 
