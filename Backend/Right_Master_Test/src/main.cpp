@@ -393,7 +393,6 @@ void checkstep_overload()
         numb_steps++;
         step = true;
         maxfootload = 0;
-        digitalWrite(LED_PIN, LOW);
         
     }
 
@@ -427,15 +426,15 @@ void sendMeasurementDataOverBluetooth()
     if (millis() - last >= TIME_SEND_MEASUREMENT)
     {
         StaticJsonDocument<200> measurement;
-        measurement["time"] = millis(); // TODO? what time should be sent?
-        measurement["crutch_r"] = (float)weight/1000.00;
-        measurement["crutch_l"] = (float)weightSlave/1000.00;
-        measurement["total"] = (float)totalweight/1000.00;
-        measurement["maxtotalweight"] = (float)maxtotalweight/1000.00;
-        measurement["footload"] = (float)footload/1000.00;
-        measurement["maxfootload"] = (float)maxfootload/1000.00;
-        measurement["steps"] = numb_steps;
-        measurement["number_ov"] = numb_overload;
+        measurement["t"] = millis(); // TODO? what time should be sent?
+        measurement["cr"] = (float)weight/1000.00;
+        measurement["cl"] = (float)weightSlave/1000.00;
+        measurement["to"] = (float)totalweight/1000.00;
+        measurement["mw"] = (float)maxtotalweight/1000.00;
+        measurement["fl"] = (float)footload/1000.00;
+        measurement["mf"] = (float)maxfootload/1000.00;
+        measurement["s"] = numb_steps;
+        measurement["n"] = numb_overload;
         
         char buffer[200];
         serializeJson(measurement, buffer);
