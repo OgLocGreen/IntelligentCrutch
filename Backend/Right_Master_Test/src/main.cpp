@@ -8,7 +8,7 @@
 #include <ArduinoJson.h>
 
 #define EEPROM_SIZE 512
-#define FILTER_SIZE 100       // 1: filter is off >1: length of filter array
+#define FILTER_SIZE 1       // 1: filter is off >1: length of filter array
 #define LOCATION_MAXWEIGHT 0
 #define LOCATION_PATIENTWEIGHT 10
 #define LOCATION_SAVED_STEPS 30
@@ -17,7 +17,7 @@
 #define LED_PIN 2
 #define BEEPER_PIN 16
 #define LOOP_FREQUENCY 20   // in Hz
-#define TIME_SEND_MEASUREMENT 100 // in milliseconds
+#define TIME_SEND_MEASUREMENT 20 // in milliseconds
 
 
 long weight = 0;         // in grams
@@ -126,15 +126,6 @@ void setup() {
 void loop() {
     updateAvgWeight();
     calculateMeasurement();
-    // if (footload > maxweight)
-    // {
-    //     digitalWrite(BEEPER_PIN, LOW);
-    // }
-    // else
-    // {
-    //     digitalWrite(LED_PIN, LOW);
-    //     digitalWrite(BEEPER_PIN, HIGH);
-    // }
     checkstep_overload();
     BluetoothCommandHandler();
 }
@@ -318,7 +309,6 @@ void calculateMeasurement()
     else { 
         footload = 0.0;
     }
-    esp_now_send(broadcastAddress, (uint8_t *) &footload, sizeof(footload));
     if (spam) sendMeasurementDataOverBluetooth();
 }
 
@@ -408,6 +398,8 @@ void checkstep_overload()
         if (maxfootload < (patientweight - maxtotalweight))
         {
             digitalWrite(LED_PIN, HIGH);
+            esp_now_send(broadcastAddress, (uint8_t *) &footload, sizeof(footload));
+
             
             maxfootload = patientweight - maxtotalweight;
 

@@ -8,7 +8,7 @@
 #include <ArduinoJson.h>
 
 #define EEPROM_SIZE 512
-#define FILTER_SIZE 100
+#define FILTER_SIZE 1
 #define LOCATION_MAXWEIGHT 0
 #define LOCATION_PATIENTWEIGHT 10
 #define LOCATION_SAVED_STEPS 30
@@ -32,6 +32,7 @@ long patientweight = 0;
 long footload = 0;
 long real_weight[15];
 long raw_value[15];
+float start;
 
 int incomingReadings = 0;
 uint8_t broadcastAddress[] = {0x24, 0x0A, 0xC4, 0x5F, 0xD8, 0x8C};  // MAC Adress of crutch Nr. 1
@@ -89,7 +90,6 @@ void setup() {
     setupScale();    // Load zeroOffset and calibrationFactor from EEPROM
 
     pinMode(BEEPER_PIN, OUTPUT);
-    digitalWrite(BEEPER_PIN, HIGH);     // high = beeper off
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, HIGH);
     delay(200);
@@ -126,6 +126,10 @@ void loop() {
     // }
     BluetoothCommandHandler();
     smartdelay();
+    if(millis() - start == 500)
+    {
+        digitalWrite(BEEPER_PIN, LOW);
+    }
 }
 
 void BluetoothCommandHandler()
@@ -304,6 +308,11 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     //Serial.print("Bytes received: ");
     //Serial.println(len);
     footload = incomingReadings;
+    if (footload == 5555)
+    {
+        digitalWrite(BEEPER_PIN, HIGH);     // high = beeper off
+        start = millis();
+    }
 }
 
 
