@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "BluetoothSerial.h"
+//#include "BluetoothSerial.h"
 #include <EEPROM.h>
 #include <Wire.h>
 #include <SparkFun_Qwiic_Scale_NAU7802_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_NAU7802
@@ -22,10 +22,10 @@ int delaytime = 0;
 int state = 0;
 unsigned long lastloop = 0;
 long raw_reading;
-long weight = 0.0;
-long weightFilter[FILTER_SIZE] = { 0 };
+int weight = 0;
+int weightFilter[FILTER_SIZE] = { 0 };
 int fCount = 0;
-long weightSum = 0.0;  // used for moving average filter
+int weightSum = 0;  // used for moving average filter
 bool spam = 1;
 long maxweight = 0;
 long patientweight = 0;
@@ -38,7 +38,7 @@ int incomingReadings = 0;
 uint8_t broadcastAddress[] = {0x24, 0x0A, 0xC4, 0x5F, 0xD8, 0x8C};  // MAC Adress of crutch Nr. 1
 //uint8_t broadcastAddress[] = {0x8C, 0xAA, 0xB5, 0x8A, 0xFC, 0x1C}; // MAC Adress of crutch Nr. 2
 
-BluetoothSerial btSerial;		           // Bluetooth
+//BluetoothSerial btSerial;		           // Bluetooth
 NAU7802 myScale; //Create instance of the NAU7802 class
 
 //void datareceived();
@@ -51,7 +51,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len);
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 template <class T> int EEPROM_writeAnything(int ee, const T& value);
 template <class T> int EEPROM_readAnything(int ee, T& value);
-void BluetoothCommandHandler();
+//void BluetoothCommandHandler();
 
 void setup() {
     Serial.begin(115200);
@@ -95,7 +95,7 @@ void setup() {
     delay(200);
     digitalWrite(LED_PIN, LOW);
 
-    btSerial.begin("iUAGS2");
+    //btSerial.begin("iUAGS2");
 
     lastloop = millis();
 }
@@ -111,20 +111,10 @@ void loop() {
         measurement["sending"] = (result == ESP_OK);
         char buffer[150];
         serializeJson(measurement, buffer);
-        btSerial.println(buffer);
+        //btSerial.println(buffer);
     }
-    // signal overload
-    // if (footload > maxweight)
-    // {
-    //     digitalWrite(LED_PIN, HIGH);
-    //     digitalWrite(BEEPER_PIN, LOW);
-    // }
-    // else
-    // {
-    //     digitalWrite(LED_PIN, LOW);
-    //     digitalWrite(BEEPER_PIN, HIGH);
-    // }
-    BluetoothCommandHandler();
+    
+    //BluetoothCommandHandler();
     smartdelay();
     if(millis() - start >= 800)
     {
@@ -132,7 +122,7 @@ void loop() {
         digitalWrite(LED_PIN, LOW);
     }
 }
-
+/*
 void BluetoothCommandHandler()
 {
     static bool write_eeprom = false;
@@ -232,7 +222,7 @@ void BluetoothCommandHandler()
         write_eeprom = false;
     }
 }
-
+*/
 
 //Reads the current system settings from EEPROM
 void setupScale(void)
