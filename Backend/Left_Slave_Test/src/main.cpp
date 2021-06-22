@@ -92,8 +92,10 @@ void setup() {
     pinMode(BEEPER_PIN, OUTPUT);
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, HIGH);
+    digitalWrite(BEEPER_PIN, HIGH);
     delay(200);
     digitalWrite(LED_PIN, LOW);
+    digitalWrite(BEEPER_PIN, LOW);
 
     //btSerial.begin("iUAGS2");
 
@@ -118,7 +120,7 @@ void loop() {
     smartdelay();
     if(millis() - start >= 800)
     {
-        digitalWrite(BEEPER_PIN, HIGH);
+        digitalWrite(BEEPER_PIN, LOW);
         digitalWrite(LED_PIN, LOW);
     }
 }
@@ -301,7 +303,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     footload = incomingReadings;
     if (footload == 5555)
     {
-        digitalWrite(BEEPER_PIN, LOW);     // high = beeper off
+        digitalWrite(BEEPER_PIN, HIGH);     // high = beeper off
         digitalWrite(LED_PIN, HIGH);
         start = millis();
     }

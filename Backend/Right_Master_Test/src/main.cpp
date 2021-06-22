@@ -17,11 +17,11 @@
 #define LOCATION_SAVED_STEPS 30
 #define LOCATION_REAL_WEIGHT 40
 #define LOCATION_READING_VAL 140
+#define LOCATION_LOGTIME 240
 #define LED_PIN 2
 #define BEEPER_PIN 16
 #define LOOP_FREQUENCY 50   // in Hz
 //#define TIME_SEND_MEASUREMENT 50 // in milliseconds
-#define LOG_TIME 30000      // ms
 
 
 long weight = 0;         // in grams
@@ -41,6 +41,7 @@ long raw_value[15];
 bool receiveflag = false;
 unsigned long start;
 unsigned long lastloop;
+int logtime = 30000;    // ms
 
 long numb_steps = 0;
 long numb_overload =0;
@@ -130,11 +131,12 @@ void setup() {
     setupScale();    // Load zeroOffset and calibrationFactor from EEPROM
 
     pinMode(BEEPER_PIN, OUTPUT);
-    digitalWrite(BEEPER_PIN, HIGH);     // high = beeper off
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, HIGH);
+    digitalWrite(BEEPER_PIN, HIGH);     // LOW = beeper off
     delay(200);
     digitalWrite(LED_PIN, LOW);
+    digitalWrite(BEEPER_PIN, LOW);     // LOW = beeper off
     btSerial.begin("iUAGS");
 
     lastloop = millis();
@@ -146,11 +148,14 @@ void loop() {
     calculateMeasurement();
     checkstep_overload();
     BluetoothCommandHandler();
-    logEntry();
+    if (loggingflag == true)
+    {
+        logEntry();
+    }
 
     if(millis() - start >= 800)
     {
-        digitalWrite(BEEPER_PIN, HIGH);
+        digitalWrite(BEEPER_PIN, LOW);
         digitalWrite(LED_PIN, LOW);
     }
     smartdelay();
@@ -260,6 +265,15 @@ void BluetoothCommandHandler()
             loggingflag = true;
             logstartmillis = millis();
         }
+        else if (cmd.equals("logtime"))
+        {
+            logtime = receivedMsg["logtime"];
+            logtime = 1000 * logtime;
+            EEPROM.write(LOCATION_LOGTIME, logtime);
+            EEPROM.commit();
+            btSerial.print("New Logtime: ");
+            btSerial.println(logtime);
+        }
         else
         {
             btSerial.println("command not recognised");
@@ -299,6 +313,8 @@ void setupScale(void)
     
     //load real value from calibration table
     EEPROM_readAnything(LOCATION_READING_VAL, raw_value);
+
+    logtime = EEPROM.read(LOCATION_LOGTIME);
 }
 
 
@@ -318,6 +334,18 @@ bool updateAvgWeight()
             break;
         }
     }
+    /*
+    btSerial.print("\nRaw Val: ");
+    btSerial.print(raw_reading);
+    btSerial.print("\n   lower raw: ");
+    btSerial.print(raw_value[lower_pos]);
+    btSerial.print("   lower weight: ");
+    btSerial.print(real_weight[lower_pos]);
+    btSerial.print("\n   upper raw: ");
+    btSerial.print(raw_value[upper_pos]);
+    btSerial.print("   upper weight: ");
+    btSerial.println(real_weight[upper_pos]);*/
+
     long calib_weight = map(raw_reading, raw_value[lower_pos], raw_value[upper_pos], real_weight[lower_pos], real_weight[upper_pos]);
     
     if (calib_weight <= 1000) calib_weight = 0;
@@ -368,7 +396,7 @@ void measureBodyWeight()
         if (state == 0)
         {
             spam = false;
-            digitalWrite(BEEPER_PIN, LOW);
+            digitalWrite(BEEPER_PIN, HIGH);
             if (millis() - last_time > 2000)
             {
                 state = 1;
@@ -377,8 +405,8 @@ void measureBodyWeight()
         }
         // measurement in 5 second
         if (state == 1) {
-            digitalWrite(BEEPER_PIN, HIGH);
-            // search the maximum value
+            digitalWrite(BEEPER_PIN, LOW);
+            // search the maximum value 
             max = max <= totalweight ? totalweight : max;
             if (millis() - last_time > 5000)
             {
@@ -432,22 +460,17 @@ void checkstep_overload()
     if(step && (totalweight < low_threshold))    // Schritt ende
     {
         step = false;
-        if (maxfootload < (patientweight - maxtotalweight))
+        maxfootload = patientweight - maxtotalweight;
+        if (maxfootload < 0) maxfootload = 0;
+        if (maxweight < maxfootload)
         {
             int start_beeb = 5555;
             digitalWrite(LED_PIN, HIGH);
+            digitalWrite(BEEPER_PIN, HIGH);
             esp_now_send(broadcastAddress, (uint8_t *) &start_beeb, sizeof(start_beeb));
-            start = millis();
-            
-            maxfootload = patientweight - maxtotalweight;
-
-        }
-
-        if (maxtotalweight > maxweight)
-        {
             numb_overload++;
+            start = millis();
         }
-
         maxtotalweight = 0;
     }
 }
@@ -481,7 +504,8 @@ template <class T> int EEPROM_writeAnything(int ee, const T& value)
 {
     const byte* p = (const byte*)(const void*)&value;
     unsigned int i;
-    for (i = 0; i < sizeof(value); i++){
+    for (i = 0; i < sizeof(value); i++) 
+    {
         EEPROM.write(ee++, *p++);
     }
     return i;
@@ -511,34 +535,34 @@ void smartdelay()
 
 void logEntry()         // SPIFFS
 {
-    if (millis() - logstartmillis > LOG_TIME) loggingflag = false;
-
-    if (loggingflag == true)
+    if (millis() - logstartmillis > logtime) 
     {
-        String entry;
-        entry = '\n';
-        entry += String(millis());
-        entry += ';';
-        entry += String(weight);
-        entry += ';';
-        entry += String(weightSlave);
-        entry += ';';
-        entry += String(totalweight);
-        entry += ';';
-        entry += String(maxtotalweight);
-        entry += ';';
-        entry += String(footload);
-        entry += ';';
-        entry += String(maxfootload);
-        entry += ';';
-        entry += String(numb_steps);
-        entry += ';';
-        entry += String(numb_overload);
-        entry += ";";
-        char centry[370];
-        entry.toCharArray(centry, 370);
-        appendFile(SPIFFS, "/LogFile.txt", centry);
+        btSerial.print("\nLog finished\n");
+        loggingflag = false;
     }
+    String entry;
+    entry = '\n';
+    entry += String(millis());
+    entry += ';';
+    entry += String(weight);
+    entry += ';';
+    entry += String(weightSlave);
+    entry += ';';
+    entry += String(totalweight);
+    entry += ';';
+    entry += String(maxtotalweight);
+    entry += ';';
+    entry += String(footload);
+    entry += ';';
+    entry += String(maxfootload);
+    entry += ';';
+    entry += String(numb_steps);
+    entry += ';';
+    entry += String(numb_overload);
+    entry += ";";
+    char centry[370];
+    entry.toCharArray(centry, 370);
+    appendFile(SPIFFS, "/LogFile.txt", centry);
 }
 
 void appendFile(fs::FS& fs, const char* path, const char* message) {	// SPIFFS
