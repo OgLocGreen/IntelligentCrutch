@@ -7,6 +7,9 @@
 #include <esp_now.h>
 #include <ArduinoJson.h>
 
+#include "FS.h"
+#include "SPIFFS.h"
+
 #define EEPROM_SIZE 512
 #define FILTER_SIZE 1       // 1: filter is off >1: length of filter array
 #define LOCATION_MAXWEIGHT 0
@@ -14,10 +17,11 @@
 #define LOCATION_SAVED_STEPS 30
 #define LOCATION_REAL_WEIGHT 40
 #define LOCATION_READING_VAL 140
+#define LOCATION_LOGTIME 240
 #define LED_PIN 2
 #define BEEPER_PIN 16
-#define LOOP_FREQUENCY 20   // in Hz
-#define TIME_SEND_MEASUREMENT 20 // in milliseconds
+#define LOOP_FREQUENCY 50   // in Hz
+//#define TIME_SEND_MEASUREMENT 50 // in milliseconds
 
 
 long weight = 0;         // in grams
@@ -36,6 +40,8 @@ long real_weight[15];
 long raw_value[15];
 bool receiveflag = false;
 unsigned long start;
+unsigned long lastloop;
+int logtime = 30000;    // ms
 
 long numb_steps = 0;
 long numb_overload =0;
@@ -51,7 +57,11 @@ float overloadArray[10];
 int arrayIndex = 0;
 
 int incomingReadings = 0;
-int weightSlave = 0;        
+int weightSlave = 0;     
+
+bool loggingflag = false;
+long logstartmillis = 0;
+
 //uint8_t broadcastAddress[] = {0x24, 0x0A, 0xC4, 0x5F, 0xD8, 0x8C};  // MAC Adress of crutch Nr. 1
 uint8_t broadcastAddress[] = {0x8C, 0xAA, 0xB5, 0x8A, 0xFC, 0x1C};  // MAC Adress of crutch Nr. 2
 
@@ -76,10 +86,17 @@ void getRealWeight();
 void BluetoothCommandHandler();
 void calculateMeasurement();
 
+void appendFile(fs::FS& fs, const char* path, const char* message);
+void writeFile(fs::FS& fs, const char* path, const char* message);
+void readFile(fs::FS& fs, const char* path);
+void logEntry();
+
 
 void setup() {
     Serial.begin(115200);
     Serial.println("iUAGS Qwiic Scale Test");
+
+    SPIFFS.begin(true);      // SPIFFS begin
 
     // Set device as a Wi-Fi Station
     WiFi.mode(WIFI_STA);
@@ -114,12 +131,15 @@ void setup() {
     setupScale();    // Load zeroOffset and calibrationFactor from EEPROM
 
     pinMode(BEEPER_PIN, OUTPUT);
-    digitalWrite(BEEPER_PIN, HIGH);     // high = beeper off
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, HIGH);
+    digitalWrite(BEEPER_PIN, HIGH);     // LOW = beeper off
     delay(200);
     digitalWrite(LED_PIN, LOW);
+    digitalWrite(BEEPER_PIN, LOW);     // LOW = beeper off
     btSerial.begin("iUAGS");
+
+    lastloop = millis();
 }
 
 
@@ -128,11 +148,17 @@ void loop() {
     calculateMeasurement();
     checkstep_overload();
     BluetoothCommandHandler();
+    if (loggingflag == true)
+    {
+        logEntry();
+    }
+
     if(millis() - start >= 800)
     {
-        digitalWrite(BEEPER_PIN, HIGH);
+        digitalWrite(BEEPER_PIN, LOW);
         digitalWrite(LED_PIN, LOW);
     }
+    smartdelay();
 }
 
 
@@ -229,6 +255,25 @@ void BluetoothCommandHandler()
             numb_steps = 0;
             numb_overload = 0;
         }
+        else if (cmd.equals("readlog"))
+        {
+            readFile(SPIFFS, "/LogFile.txt");
+        }
+        else if (cmd.equals("logdata"))
+        {
+            writeFile(SPIFFS, "/LogFile.txt", "millis;crutchR;crutchL;total;maxtotal;footload;maxfootload;steps;overloads");
+            loggingflag = true;
+            logstartmillis = millis();
+        }
+        else if (cmd.equals("logtime"))
+        {
+            logtime = receivedMsg["logtime"];
+            logtime = 1000 * logtime;
+            EEPROM.write(LOCATION_LOGTIME, logtime);
+            EEPROM.commit();
+            btSerial.print("New Logtime: ");
+            btSerial.println(logtime);
+        }
         else
         {
             btSerial.println("command not recognised");
@@ -268,6 +313,8 @@ void setupScale(void)
     
     //load real value from calibration table
     EEPROM_readAnything(LOCATION_READING_VAL, raw_value);
+
+    logtime = EEPROM.read(LOCATION_LOGTIME);
 }
 
 
@@ -287,6 +334,18 @@ bool updateAvgWeight()
             break;
         }
     }
+    /*
+    btSerial.print("\nRaw Val: ");
+    btSerial.print(raw_reading);
+    btSerial.print("\n   lower raw: ");
+    btSerial.print(raw_value[lower_pos]);
+    btSerial.print("   lower weight: ");
+    btSerial.print(real_weight[lower_pos]);
+    btSerial.print("\n   upper raw: ");
+    btSerial.print(raw_value[upper_pos]);
+    btSerial.print("   upper weight: ");
+    btSerial.println(real_weight[upper_pos]);*/
+
     long calib_weight = map(raw_reading, raw_value[lower_pos], raw_value[upper_pos], real_weight[lower_pos], real_weight[upper_pos]);
     
     if (calib_weight <= 1000) calib_weight = 0;
@@ -308,8 +367,10 @@ bool updateAvgWeight()
 void calculateMeasurement()
 {
     totalweight = weight + weightSlave;
-    if (totalweight > 2000) {
+    if (totalweight > 4000) {
         footload = patientweight - totalweight;
+        if (footload < 0.0)
+            footload = 0.0;
     }
     else { 
         footload = 0.0;
@@ -335,7 +396,7 @@ void measureBodyWeight()
         if (state == 0)
         {
             spam = false;
-            digitalWrite(BEEPER_PIN, LOW);
+            digitalWrite(BEEPER_PIN, HIGH);
             if (millis() - last_time > 2000)
             {
                 state = 1;
@@ -344,8 +405,8 @@ void measureBodyWeight()
         }
         // measurement in 5 second
         if (state == 1) {
-            digitalWrite(BEEPER_PIN, HIGH);
-            // search the maximum value
+            digitalWrite(BEEPER_PIN, LOW);
+            // search the maximum value 
             max = max <= totalweight ? totalweight : max;
             if (millis() - last_time > 5000)
             {
@@ -373,7 +434,7 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 
 // Callback when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-    memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
+    memcpy(&incomingReadings, incomingData, len);
     //Serial.print("Bytes received: ");
     //Serial.println(len);
     weightSlave = incomingReadings;
@@ -399,22 +460,17 @@ void checkstep_overload()
     if(step && (totalweight < low_threshold))    // Schritt ende
     {
         step = false;
-        if (maxfootload < (patientweight - maxtotalweight))
+        maxfootload = patientweight - maxtotalweight;
+        if (maxfootload < 0) maxfootload = 0;
+        if (maxweight < maxfootload)
         {
             int start_beeb = 5555;
             digitalWrite(LED_PIN, HIGH);
+            digitalWrite(BEEPER_PIN, HIGH);
             esp_now_send(broadcastAddress, (uint8_t *) &start_beeb, sizeof(start_beeb));
-            start = millis();
-            
-            maxfootload = patientweight - maxtotalweight;
-
-        }
-
-        if (maxtotalweight > maxweight)
-        {
             numb_overload++;
+            start = millis();
         }
-
         maxtotalweight = 0;
     }
 }
@@ -422,13 +478,13 @@ void checkstep_overload()
 
 void sendMeasurementDataOverBluetooth()
 {
-    static int last = millis();
-    if (millis() - last >= TIME_SEND_MEASUREMENT)
-    {
+    //static int last = millis();
+    //if (millis() - last >= TIME_SEND_MEASUREMENT)
+    //{
         StaticJsonDocument<200> measurement;
         measurement["t"] = millis(); // TODO? what time should be sent?
         measurement["cr"] = (float)weight/1000.00;
-        measurement["cl"] = (float)weightSlave/1000.00;
+        measurement["cl"] = (float)weightSlave/1000.0;
         measurement["to"] = (float)totalweight/1000.00;
         measurement["mw"] = (float)maxtotalweight/1000.00;
         measurement["fl"] = (float)footload/1000.00;
@@ -439,8 +495,8 @@ void sendMeasurementDataOverBluetooth()
         char buffer[200];
         serializeJson(measurement, buffer);
         btSerial.println(buffer);
-        last = millis();
-    }
+    //    last = millis();
+    //}
 }
 
 
@@ -448,7 +504,8 @@ template <class T> int EEPROM_writeAnything(int ee, const T& value)
 {
     const byte* p = (const byte*)(const void*)&value;
     unsigned int i;
-    for (i = 0; i < sizeof(value); i++){
+    for (i = 0; i < sizeof(value); i++) 
+    {
         EEPROM.write(ee++, *p++);
     }
     return i;
@@ -465,3 +522,93 @@ template <class T> int EEPROM_readAnything(int ee, T& value)
     }
     return i;
 }
+
+void smartdelay()
+{
+    int delaytime = 0;
+	delaytime = 1000 / LOOP_FREQUENCY - (millis() - lastloop);
+	if (delaytime < 0) delaytime = 0;
+	if (delaytime > (1000 / LOOP_FREQUENCY)) delaytime = (1000 / LOOP_FREQUENCY);
+	delay(delaytime);
+	lastloop = millis();
+}
+
+void logEntry()         // SPIFFS
+{
+    if (millis() - logstartmillis > logtime) 
+    {
+        btSerial.print("\nLog finished\n");
+        loggingflag = false;
+    }
+    String entry;
+    entry = '\n';
+    entry += String(millis());
+    entry += ';';
+    entry += String(weight);
+    entry += ';';
+    entry += String(weightSlave);
+    entry += ';';
+    entry += String(totalweight);
+    entry += ';';
+    entry += String(maxtotalweight);
+    entry += ';';
+    entry += String(footload);
+    entry += ';';
+    entry += String(maxfootload);
+    entry += ';';
+    entry += String(numb_steps);
+    entry += ';';
+    entry += String(numb_overload);
+    entry += ";";
+    char centry[370];
+    entry.toCharArray(centry, 370);
+    appendFile(SPIFFS, "/LogFile.txt", centry);
+}
+
+void appendFile(fs::FS& fs, const char* path, const char* message) {	// SPIFFS
+    //btSerial.printf("\nAppending to file: %s\r\n", path);
+
+    File file = fs.open(path, FILE_APPEND);
+    if (!file) {
+        btSerial.println("− failed to open file for appending");
+        return;
+    }
+    if (file.print(message)) {
+        //btSerial.println("− message appended");
+    }
+    else {
+        btSerial.println("− append failed");
+    }
+}
+
+void writeFile(fs::FS& fs, const char* path, const char* message) {		// overwrite
+    btSerial.printf("\nWriting file: %s\r\n", path);
+
+    File file = fs.open(path, FILE_WRITE);
+    if (!file) {
+        btSerial.println("− failed to open file for writing");
+        return;
+    }
+    if (file.print(message)) {
+        //btSerial.println("− file written");
+    }
+    else {
+        btSerial.println("− frite failed");
+    }
+}
+
+void readFile(fs::FS& fs, const char* path)	
+{
+    btSerial.printf("\nReading file: %s\r\n", path);
+
+    File file = fs.open(path);
+    if (!file || file.isDirectory()) {
+        btSerial.println("- failed to open file for reading");
+        return;
+    }
+
+    while (file.available()) {
+        btSerial.write(file.read());
+    }
+}
+
