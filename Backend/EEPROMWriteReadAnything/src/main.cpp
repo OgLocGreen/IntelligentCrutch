@@ -30,7 +30,6 @@ template <class T> int EEPROM_readAnything(int ee, T& value)
 }
 
 void clearEEPROM(){
-  EEPROM.begin(512);
   // write a 0 to all 512 bytes of the EEPROM
   for (int i = 0; i < 512; i++) {
     EEPROM.write(i, 0);
@@ -52,13 +51,13 @@ void writeInCrutch(){
   float mw = 20.;
   float rw = 69;
   long real_weight[15] = {0, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000, 65000, 70000};
-  long raw_value[15] = {-85000, 110000, 370000, 630000, 810000, 900000, 1090000, 1200000, 1260000, 1310000, 1390000, 1470000, 1540000, 1610000, 1780000};
-  long raw_value2[15] = {-77000, 160000, 430000, 700000, 980000, 1230000, 1360000, 1420000, 1580000, 1660000, 1750000, 1820000, 1950000, 2040000, 2300000};
+  long raw_value[15] =  {44500, 279000, 500000, 790000, 1000000, 1300000, 1560000, 1610000, 1695000, 1760000, 1850000, 1900000, 1964000, 2000000, 2100000};
+  long raw_value2[15] = {41000, 280000, 540000, 840000, 1125000, 1280000, 1394000, 1500000, 1600000, 1670000, 1710000, 1805000, 1900000, 2000000, 2100000};
   
   EEPROM_writeAnything(LOCATION_MAXWEIGHT, mw);
   EEPROM_writeAnything(LOCATION_PATIENTWEIGHT, rw);
   EEPROM_writeAnything(LOCATION_REAL_WEIGHT, real_weight);
-  EEPROM_writeAnything(LOCATION_READING_VAL, raw_value);
+  EEPROM_writeAnything(LOCATION_READING_VAL, raw_value2);
   EEPROM.commit();
 }
 
@@ -93,7 +92,7 @@ void setup() {
   delay(5000);
   while(!Serial){;}
   //clearEEPROM();
-  //writeInCrutch();
+  writeInCrutch();
   readFromKruecke();
 }
 
