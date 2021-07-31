@@ -170,7 +170,7 @@ a:active {
 						<a href="0307VerfahrensmatrixNWA.html">3.7 Benefit Analysis of Procedure</a>
 						<a href="0308ErgebnisNWA.html">3.8 Analysis Result</a>
 						<a href="0309Konzeptentwicklung.html">3.9 Concept Development</a>
-						<a href="0310Bestellliste.html">3.10 Order List</a>
+						<a href="0310Stueckliste.html">3.10 Order List</a>
 					</div>
 					<div>
 					</div>
@@ -230,7 +230,63 @@ a:active {
 			</td>
 		</tr>
 		<tr>
-			<td class="auto-style15" style="height: 600px;"><!-- #BeginEditable "Inhalt" -->-Zeichnungen, Fotos, Ideen<!-- #EndEditable --></td>
+			<td class="auto-style15" style="height: 600px;"><!-- #BeginEditable "Inhalt" -->
+			<div class="auto-style25" style="margin: 20px;  text-align:justify">
+			An iterative design process has been chosen to develop the whole 
+			system. At the beginning, the first goal is to obtain raw weight and 
+			accelerometer sensor data from two crutches as fast as possible. 
+			This data will then be analized for feasability and to develop 
+			algorithms to detect and accurately calculate the critical limb load 
+			while walking: <br><br>
+			<div class="auto-style2">
+			<img alt="Data Flow" height="173" src="images/Block_Diagram_Step1.png" width="571"><br>
+			<strong>Figure 3.9.1: General concept of the intelligent crutch.</strong></div>
+			<br><br>Develpment will take part in the following two parts:<br>
+			<br>1. <strong>Test setup</strong> with reduced functionality: <br>
+			Equip two crutches simple and fast with microcontrollers, weight 
+			sensors, accelerometers and batteries in form of breakout boards. 
+			Synchronize measurements by pounding both crutches together and 
+			searching for a peak in acceleration data. Send raw sensor data from 
+			both crutches to android device. Show synchronized data from both 
+			crutches and export it into one .csv-file for further analysis.<br>
+			<br>2. Fully functional <strong>prototype</strong>:<br>Construct a 
+			fully functional prototype with direct feedback for patient and GUI 
+			for medical personnel. Design and fit PCB with electrical 
+			components. Shrink down mechanical design accordingly.<br><br>
+			<br>To realize an efficient solution, a normal crutch will be 
+			modified. The original upper part is unchanged. The lower inner tube 
+			will be modified. It will still be possible to adjust the crutch 
+			length in the usual way. The first step of mechanical development is mounting the weight 
+			sensor. This must be done in a way that axial load is transfered 
+			unchanged to the weight sensor while every lateral load is absorbed 
+			by the crutch tube.<br><br>&nbsp;
+			<div class="auto-style2"><img alt="Sketch Sensor Position" height="424" src="images/img8.jpg" width="556"><br><strong>Figure 3.9.2: Design concept of the intelligent crutch.</strong></div>
+			<br>A first sketch of a possible mounting position of the FX1901 
+			force sensor. The crutch tube is closed at the bottom, so it can 
+			deliver force into the center bump of the force sensor. The main 
+			foot-unit can be 3D-printed in TPU, a high-strength, slightly 
+			flexible material.<br>Depicted in black is a linear bearing, 
+			possibly an aluminium tube. It takes the side forces, which are 
+			created by the torque of setting the crutch foot on its edge, which 
+			happens in use. It still allows linear movement without significant 
+			friction, so the force sensor can get accurate readings. In the 
+			final design, the opening on top must allow the assembly of the 
+			sensor into the main foot unit.<br><br>The following pictures show 
+			CAD design for the test setup. Alle electric components are housed 
+			inside a 3D-printed box.<br><br>
+			<div class="auto-style2">
+			<img alt="test setup 1" height="600" src="images/test_setup_CAD%20lower%20part%20cut.PNG" width="350">&nbsp;
+			<img alt="test setup 2" height="600" src="images/test_setup_CAD%20lower%20part.PNG" width="350">&nbsp;
+			<img alt="test setup 3" height="600" src="images/test_setup_CAD%20whole%20crutch.PNG" width="198"><br>
+			<strong>Figure 3.9.3: Mechanical Design of the intelligent crutch.</strong>
+			</div>
+			<br><br>Electrical components will be integrated inside crutch 
+			tubing for the final prototype:<br><br>
+			<div class="auto-style2">
+			<img alt="prototype" height="533" src="images/iUAGS.png" width="729"><br>
+			<strong>Figure 3.9.4: Electrical components integration</strong>
+			</div>
+			</div><!-- #EndEditable --></td>
 		</tr>
 	</table>
 	<br></div>

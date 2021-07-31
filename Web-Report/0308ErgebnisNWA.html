@@ -98,9 +98,11 @@
 .auto-style21 {
 	border-width: 0px;
 }
-.auto-style23 {
-	border: 1px solid #FFFFFF;
-	background-color: #E5E5E5;
+.auto-style25 {
+	text-decoration: underline;
+}
+.auto-style26 {
+	text-decoration: none;
 }
 </style>
 <!-- #EndEditable -->
@@ -191,7 +193,7 @@ a:active {
 						<a href="0307VerfahrensmatrixNWA.html">3.7 Benefit Analysis of Procedure</a>
 						<a href="0308ErgebnisNWA.html">3.8 Analysis Result</a>
 						<a href="0309Konzeptentwicklung.html">3.9 Concept Development</a>
-						<a href="0310Bestellliste.html">3.10 Order List</a>
+						<a href="0310Stueckliste.html">3.10 Order List</a>
 					</div>
 					<div>
 					</div>
@@ -252,47 +254,63 @@ a:active {
 		</tr>
 		<tr>
 			<td class="auto-style15" style="height: 600px;"><!-- #BeginEditable "Inhalt" -->
-			<p></p>
-			<table style="width: 100%">
-				<tr>
-					<td class="auto-style23">&nbsp;</td>
-					<td class="auto-style23">
-					<h4>Punktsumme</h4>
-					</td>
-					<td class="auto-style23">
-					<h4>Nutzwert</h4>
-					</td>
-					<td class="auto-style23">
-					<h4>Gewichtete<br>Wertigkeit</h4>
-					</td>
-				</tr>
-				<tr>
-					<td class="auto-style23">&nbsp;</td>
-					<td class="auto-style23">Lösung 1<br></td>
-					<td class="auto-style23">&nbsp;</td>
-					<td class="auto-style23">&nbsp;</td>
-				</tr>
-				<tr>
-					<td class="auto-style23">&nbsp;</td>
-					<td class="auto-style23">Lösung 2<br></td>
-					<td class="auto-style23">&nbsp;</td>
-					<td class="auto-style23">&nbsp;</td>
-				</tr>
-				<tr>
-					<td class="auto-style23">&nbsp;</td>
-					<td class="auto-style23">Lösung 3<br></td>
-					<td class="auto-style23">&nbsp;</td>
-					<td class="auto-style23">&nbsp;</td>
-				</tr>
-				<tr>
-					<td class="auto-style23">&nbsp;</td>
-					<td class="auto-style23">ideale Lösung<br></td>
-					<td class="auto-style23">&nbsp;</td>
-					<td class="auto-style23">1,00</td>
-				</tr>
-			</table>
-			<p>&nbsp;</p>
-			
+			<div class="auto-style25" style="margin: 20px;  text-align:justify"><strong>Force sensor:</strong><br></div>
+			<div style="margin: 20px;  text-align:justify">
+			Requirements for the choice of force sensor are:<br>
+			- size<br>
+			- availability<br>
+			- electrical connectivity<br>
+			- need for signal 
+			amplifier<br><br>Due to the size and shipping restraints, the round 
+			FX1901 strain-gage sensor is picked. The plastic housing can be 
+			removed to reduce the size of the unit. Force is applied on the 
+			center bump. With a diameter of 19,2mm, it is suitable to be mounted 
+			into the foot of a crutch.<br><br>
+			<div class="auto-style2">
+			<img alt="Specifications RS-force sensor" src="images/img2B.jpg" width="303" height="703"><br>
+				<strong>Figure 3.8.1: Features of the FX1901 according to data shee</strong>t<br><br><br>
+			<img alt="Strain-gage layout" src="images/img2E.jpg" width="197" height="201"><br>
+				<strong>Figure 3.8.2: Strain-gauge layout of FX1901</strong></div><br>&nbsp;The sensor features 4 strain gages in 
+			a configuration that is readable for the HX711 signal amplifier.<br>
+			<br><div class="auto-style2"><img alt="Specifications" src="images/img2C.jpg" width="696" height="453"><br>
+					<strong>Figure 3.8.3: Technical specifications of the FX1901 sensor</strong></div><br><br>
+				<strong>Microcontroller:</strong><br>
+			<br>The main requirement characteristics for the choice of 
+			microcontroller are:<br>- size<br>- wireless connectivity<br>- 
+			low-power sleep modes<br>- power consumption when in use<br>- cost<br>
+			<br>Since the first demonstrator unit of the intelligent crutch is 
+			to be built purely as a function demonstrator, the size and cost 
+			requirements are secondary. Wireless connectivity is a must, also 
+			low power consumption in standby and use should be demonstrated.<br>
+			<br>
+			<div class="auto-style2">
+			<img alt="TinyPico" height="373" src="images/img1E.jpg" width="521"><br>
+				<strong>Figure 3.8.4: TinyPICO ESP32 boards with micro-USB (left) and USB-C (right)</strong></div>
+			<br>The TinyPICO is a ESP32 board which is very small (18mm x 32mm). 
+			Compared to most regular ESP32 development boards, the number of 
+			breakout-pins has been reduced. This will not affect the project, 
+			since only a small number of sensors need to be connected.<br>The 
+			TinyPICO offers a very low power consumption of
+			20uA when in deep sleep.<br>This suits the use case very well, 
+			since it is possible to leave the device turned on for long periods 
+			of time with no use.<br>The board is prepared to be powered directly 
+			from a single-cell lithium battery. This suits the use-case of a 
+			crutch very well, as the device must be very mobile.<br><br>
+			<div class="auto-style2">
+			<img alt="Specifications TinyPICO" src="images/img1F.jpg" width="427" height="323"><br>
+				<strong>Figure 3.8.5: Specification of TinyPICO
+			</strong>(Source: <a href="https://www.tinypico.com/" class="auto-style26">
+			https://www.tinypico.com/</a>)<br></div>
+			<br>
+			The TinyPICO Nano is a different variant of the same ESP32 board, which is SMD. The size is 
+			therefore reduced to 13mm x 27mm.<br><br>
+			<div class="auto-style2">
+			<img alt="TinyPICO Nano SMD" height="340" src="images/img20.jpg" width="438"><br>
+				<strong>Figure 3.8.6: TinyPICO Nano SMD board</strong></div><br>It is well suited for the integrated 
+			PCB variant of the intelligent crutch. Manual soldering is possible.<br>
+			The very small width make it theoretically possible to fit the 
+			Microcontroller board into the tube of the crutch.<br>
+			</div>
 			<!-- #EndEditable --></td>
 		</tr>
 	</table>
