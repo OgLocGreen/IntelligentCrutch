@@ -1,3 +1,5 @@
+// SLAVE Crutch Nr. 2 (left side)
+
 #include <Arduino.h>
 //#include "BluetoothSerial.h"
 #include <EEPROM.h>
@@ -11,6 +13,7 @@
 #define FILTER_SIZE 1
 #define LOCATION_MAXWEIGHT 0
 #define LOCATION_PATIENTWEIGHT 10
+#define LOCATION_BEEPFLAG 20
 #define LOCATION_SAVED_STEPS 30
 #define LOCATION_REAL_WEIGHT 40
 #define LOCATION_READING_VAL 140
@@ -27,6 +30,7 @@ int weightFilter[FILTER_SIZE] = { 0 };
 int fCount = 0;
 int weightSum = 0;  // used for moving average filter
 bool spam = 1;
+bool beepflag = true;
 long maxweight = 0;
 long patientweight = 0;
 long footload = 0;
@@ -86,6 +90,7 @@ void setup() {
 
 
     EEPROM.begin(EEPROM_SIZE);
+    EEPROM.get(LOCATION_BEEPFLAG, beepflag);
 
     setupScale();    // Load zeroOffset and calibrationFactor from EEPROM
 
@@ -303,9 +308,15 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     footload = incomingReadings;
     if (footload == 5555)
     {
-        digitalWrite(BEEPER_PIN, HIGH);     // high = beeper off
+        if (beepflag) digitalWrite(BEEPER_PIN, HIGH);     // high = beeper on
         digitalWrite(LED_PIN, HIGH);
         start = millis();
+    }
+    if (footload == 6666)
+    {
+        beepflag = !beepflag;
+        EEPROM.put(LOCATION_BEEPFLAG, beepflag);
+        EEPROM.commit();
     }
 }
 
@@ -342,3 +353,4 @@ template <class T> int EEPROM_readAnything(int ee, T& value)
     }
     return i;
 }
+

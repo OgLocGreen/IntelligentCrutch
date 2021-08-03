@@ -1,3 +1,5 @@
+// MASTER Crutch Nr. 1 (right side)
+
 #include <Arduino.h>
 #include "BluetoothSerial.h"
 #include <EEPROM.h>
@@ -14,13 +16,14 @@
 #define FILTER_SIZE 1       // 1: filter is off >1: length of filter array
 #define LOCATION_MAXWEIGHT 0
 #define LOCATION_PATIENTWEIGHT 10
+#define LOCATION_BEEPFLAG 20
 #define LOCATION_SAVED_STEPS 30
 #define LOCATION_REAL_WEIGHT 40
 #define LOCATION_READING_VAL 140
 #define LOCATION_LOGTIME 240
 #define LED_PIN 2
 #define BEEPER_PIN 16
-#define LOOP_FREQUENCY 50   // in Hz
+#define LOOP_FREQUENCY 20   // in Hz
 //#define TIME_SEND_MEASUREMENT 50 // in milliseconds
 
 
@@ -33,6 +36,8 @@ long weightFilter[FILTER_SIZE] = { 0 };
 int fCount = 0;
 float weightSum = 0.0;  // used for moving average filter
 bool spam = true;
+bool beepflag = true;
+//bool beepnow = false;
 bool measuring_weight = false;
 long maxweight = 0;
 long patientweight = 0;
@@ -68,6 +73,8 @@ uint8_t broadcastAddress[] = {0x8C, 0xAA, 0xB5, 0x8A, 0xFC, 0x1C};  // MAC Adres
 BluetoothSerial btSerial;		           // Bluetooth
 NAU7802 myScale; //Create instance of the NAU7802 class
 
+//TaskHandle_t Task1;
+
 void datareceived();
 void displaydata();
 void setupScale(void);
@@ -91,6 +98,8 @@ void writeFile(fs::FS& fs, const char* path, const char* message);
 void readFile(fs::FS& fs, const char* path);
 void logEntry();
 
+//SemaphoreHandle_t xBinarySemaphore;
+//void Task1code( void * parameter);
 
 void setup() {
     Serial.begin(115200);
@@ -127,6 +136,7 @@ void setup() {
 
 
     EEPROM.begin(EEPROM_SIZE);
+    EEPROM.get(LOCATION_BEEPFLAG, beepflag);
 
     setupScale();    // Load zeroOffset and calibrationFactor from EEPROM
 
@@ -137,6 +147,18 @@ void setup() {
     delay(200);
     digitalWrite(LED_PIN, LOW);
     digitalWrite(BEEPER_PIN, LOW);     // LOW = beeper off
+
+    //xBinarySemaphore = xSemaphoreCreateBinary();
+
+    /*xTaskCreate(
+        Task1code, // Function to implement the task 
+        "Task1", // Name of the task 
+        10000,  // Stack size in words 
+        NULL,  // Task input parameter 
+        0,  // Priority of the task 
+        &Task1  // Task handle. 
+        );*/ // Core where the task should run 
+
     btSerial.begin("iUAGS");
 
     lastloop = millis();
@@ -158,6 +180,7 @@ void loop() {
         digitalWrite(BEEPER_PIN, LOW);
         digitalWrite(LED_PIN, LOW);
     }
+
     smartdelay();
 }
 
@@ -273,6 +296,16 @@ void BluetoothCommandHandler()
             EEPROM.commit();
             btSerial.print("New Logtime: ");
             btSerial.println(logtime);
+        }
+        else if (cmd.equals("togglebeep"))
+        {
+            beepflag = !beepflag;
+            EEPROM.write(LOCATION_BEEPFLAG, beepflag);
+            EEPROM.commit();
+            int data_send = 6666;
+            esp_now_send(broadcastAddress, (uint8_t *) &data_send, sizeof(data_send));
+            btSerial.print("New Beepflag: ");
+            btSerial.println(beepflag);
         }
         else
         {
@@ -466,10 +499,11 @@ void checkstep_overload()
         {
             int start_beeb = 5555;
             digitalWrite(LED_PIN, HIGH);
-            digitalWrite(BEEPER_PIN, HIGH);
+            if (beepflag) digitalWrite(BEEPER_PIN, HIGH);
             esp_now_send(broadcastAddress, (uint8_t *) &start_beeb, sizeof(start_beeb));
             numb_overload++;
             start = millis();
+            //beepnow = true;
         }
         maxtotalweight = 0;
     }
@@ -611,4 +645,21 @@ void readFile(fs::FS& fs, const char* path)
         btSerial.write(file.read());
     }
 }
-
+/*
+void Task1code( void * parameter) 
+{
+    while(true)
+    {
+        if (beepnow)
+        {
+            start = millis();
+            while(millis() - start < 800) 
+            {
+                Serial.println("beeping");
+            }
+            digitalWrite(BEEPER_PIN, LOW);
+            digitalWrite(LED_PIN, LOW);
+            beepnow = false;
+        }
+    }
+}*/
