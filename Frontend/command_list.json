@@ -1,0 +1,44 @@
+{
+    "to toggle stream of the message ":
+    {"cmd" : "spam"},
+    "data format being spammed":
+    {
+        "t":17180,
+        "cr":0,
+        "cl":0,
+        "to":0,
+        "mtw":0,
+        "ft":0,
+        "mft":0,
+        "st":0,
+        "nov":0
+    },
+    "to set calibration table":
+    { 
+        "cmd" : "set_calib", 
+        "row": 12, 
+        "real_weight": 70000, 
+        "reading_val" : 112000 
+    },
+    "to get calibration table":
+    { "cmd" : "get_calib" },
+    "the message sent after get calib":
+    {
+        "real_weight" : [0, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000, 45000, 50000, 55000, 60000, 65000, 70000],
+        "raw_value" : [-77000, 160000, 430000, 700000, 980000, 1230000, 1360000, 1420000, 1580000, 1660000, 1750000, 1820000, 1950000, 2040000, 2300000]
+    },
+    "to set patient weight":
+    {
+        "cmd" : "set_pat_weight", 
+        "value" : 70.00
+    },
+    "to set maximal allowed weight" :
+    {
+        "cmd" : "set_max_weight", 
+        "value" : 20.00
+    },
+    "to get patient weight":
+    { "cmd": "get_pat_weight" },
+    "to get max weight":
+    { "cmd": "get_max_weight" }
+}
